@@ -19,7 +19,7 @@ const vig=o=>left(o)>0?`<span class="tag ok">Vigente · ${left(o)} día${left(o)
 const uname=u=>u?.name||u?.email?.split('@')[0]||'—';
 const wa9=v=>{v=String(v||'').replace(/\D/g,'');return v.length===9?'51'+v:v};
 const parseAcc=a=>{const p=String(a||'').split('|').map(x=>x.trim());return p.length<2?[['Cuenta',a||'(cargando…)']]:['Correo','Contraseña','Perfil','PIN'].map((l,i)=>[l,p[i]]).filter(x=>x[1])};
-const PAY={yape:{n:'Yape',rows:[['Número','965730677'],['Nombre','Cristhian Eddy C. A.']],qr:'yaqr.jpeg',note:'Paga el equivalente en soles.'},bin:{n:'Binance Pay',rows:[['ID de usuario','1250169311'],['Nombre','CRB TECH SHP']],qr:'binqr.jpeg',note:'Paga el monto en dólares (USDT).'}};
+const PAY={yape:{n:'Yape',rows:[['Número','965730677'],['Nombre','Cristhian Eddy C. A.']],qr:'img/yaqr.jpeg',note:'Paga el equivalente en soles.'},bin:{n:'Binance Pay',rows:[['ID de usuario','1250169311'],['Nombre','CRB TECH SHP']],qr:'img/binqr.jpeg',note:'Paga el monto en dólares (USDT).'}};
 function toast(t,d=2800){const e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',d)}
 const modal=h=>{$('mbox').innerHTML=h;$('modal').classList.add('on')};
 const closeM=()=>$('modal').classList.remove('on');
@@ -104,7 +104,7 @@ function userIssue(u){
 /* ===== Vistas ===== */
 let shell=null;
 const ST={pend:'Pendiente',ok:'Aprobada',no:'Rechazada'};
-const LOGO=`<span class="logo"><img src="logo.jpeg" alt="CBD STREAMING SHOP" onerror="this.parentNode.innerHTML='<b>CBD STREAMING</b> <span>SHOP</span>'"></span>`;
+const LOGO=`<span class="logo"><img src="img/cdb.png" alt="CBD STREAMING SHOP" onerror="this.parentNode.innerHTML='<b>CBD STREAMING</b> <span>SHOP</span>'"></span>`;
 const BURG='<button class="burger" data-a="tg" aria-label="Menú"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg></button>';
 const who=()=>S.adm?'Administrador':uname({name:S.name,email:S.me?.email});
 const stk=p=>(S.free[p.id]||[]).length;
