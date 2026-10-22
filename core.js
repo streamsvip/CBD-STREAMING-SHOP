@@ -104,7 +104,7 @@ function userIssue(u){
 /* ===== Vistas ===== */
 let shell=null;
 const ST={pend:'Pendiente',ok:'Aprobada',no:'Rechazada'};
-const LOGO=`<span class="logo"><img src="img/cdb.png" alt="CBD STREAMING SHOP" onerror="this.parentNode.innerHTML='<b>CBD STREAMING</b> <span>SHOP</span>'"></span>`;
+const LOGO=`<span class="logo"><img src="img/cdb.jpeg" alt="CBD STREAMING SHOP" onerror="this.parentNode.innerHTML='<b>CBD STREAMING</b> <span>SHOP</span>'"></span>`;
 const BURG='<button class="burger" data-a="tg" aria-label="Menú"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg></button>';
 const who=()=>S.adm?'Administrador':uname({name:S.name,email:S.me?.email});
 const stk=p=>(S.free[p.id]||[]).length;
@@ -162,8 +162,21 @@ Object.assign(A,{
 });
 Object.assign(I,{q:v=>{S.q=v;const l=P.lst[S.tab];if(l)$('lst').innerHTML=l()}});
 const go=p=>location.replace('./'+p);
+function circleIcon(){
+  const im=new Image();
+  im.onload=()=>{try{
+    const s=128,cv=document.createElement('canvas');cv.width=cv.height=s;
+    const x=cv.getContext('2d');x.beginPath();x.arc(s/2,s/2,s/2,0,Math.PI*2);x.clip();
+    const m=Math.min(im.width,im.height);x.drawImage(im,(im.width-m)/2,(im.height-m)/2,m,m,0,0,s,s);
+    let l=document.querySelector('link[rel~="icon"]');if(!l){l=document.createElement('link');l.rel='icon';document.head.appendChild(l)}
+    l.type='image/png';l.href=cv.toDataURL('image/png');
+  }catch{}};
+  im.src='img/cdb.jpeg';
+}
 function start(page){
 document.body.insertAdjacentHTML('beforeend','<div id="modal"><div class="box" id="mbox"></div></div><div id="toast"></div><a class="fab" href="#" data-a="sup" aria-label="Soporte por WhatsApp"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm5.2 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.5-3.9-4.7-4.1-.1-.2-1.1-1.5-1.1-2.8s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.1.1.3 0 .5l-.4.6c-.1.2-.3.3-.1.6.2.3.7 1.2 1.5 1.9 1 .9 1.9 1.2 2.2 1.3.3.1.4.1.6-.1l.8-1c.2-.2.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.2.1.8-.1 1.4z"/></svg><span>Soporte</span></a>');
+if(page!=='catalogo')document.querySelector('.fab')?.remove();
+circleIcon();
 document.addEventListener('click',async e=>{
   if(e.target.id==='modal')return closeM();
   const b=e.target.closest('[data-a]');if(!b)return;
