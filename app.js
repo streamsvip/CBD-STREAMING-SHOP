@@ -65,9 +65,19 @@ async function fetchSec(ids){
 /* ---- autenticación ---- */
 const login=(e,p)=>signInWithEmailAndPassword(auth,e,p);
 const logout=()=>signOut(auth);
+/* Perfil: una sola creación por usuario (misma promesa para registro y sesión) y solo si no existe */
+const pf={};
+const profile=(u,name)=>pf[u.uid]??=(async()=>{
+  try{
+    if((await get(R('users/'+u.uid))).exists())return;
+    const n=String(name||u.email.split('@')[0]).trim().slice(0,40).padEnd(2,'_');
+    await set(R('users/'+u.uid),{name:n,email:u.email,role:'client',balance:0,createdAt:serverTimestamp()});
+  }catch(e){delete pf[u.uid];throw e}
+})();
 async function register(name,e,p){
+  S.pendName=name;
   const c=await createUserWithEmailAndPassword(auth,e,p);
-  await set(R('users/'+c.user.uid),{name,email:c.user.email,role:'client',balance:0,createdAt:serverTimestamp()});
+  await profile(c.user,name);
 }
 /* El rol se lee de users/<uid>/role (las reglas permiten leer tu propio nodo) */
 const isAdmin=async u=>{try{return (await get(R('users/'+u.uid+'/role'))).val()==='admin'}catch{return false}};
@@ -162,7 +172,7 @@ const prodList=()=>{const l=S.prods.filter(p=>has([p.name,p.cat,p.desc],S.q));re
 const salesList=()=>{const o=S.orders.filter(x=>has([x.pname,x.cname,buyer(x.uid).name,buyer(x.uid).email,em(x)],S.q));return o.length?o.map(x=>`<div class="row"><span>${esc(x.pname)}<br><small class="mu">Comprador: ${esc(uname(buyer(x.uid)))} · ${esc(buyer(x.uid).email||'—')}<br>${period(x)}</small> ${vig(x)}</span><span style="display:flex;gap:6px;align-items:center"><b>${money(x.price)}</b><button class="ghost" data-a="show" data-id="${x.id}">Ver</button><button class="ghost" data-a="edito" data-id="${x.id}">Editar</button></span></div>`).join(''):'<p class="mu">Todavía no hay ventas.</p>'};
 const pendV=()=>{const p=S.rech.filter(r=>r.status==='pend'),h=S.rech.filter(r=>r.status!=='pend');return `<div class="sec"><h3>Recargas pendientes (${p.length})</h3>${p.length?p.map(r=>recRow(r,`<span style="display:flex;gap:6px"><button class="ok" data-a="decide" data-id="${r.id}" data-ok="1">Aceptar</button><button class="no" data-a="decide" data-id="${r.id}" data-ok="0">Rechazar</button></span>`)).join(''):'<p class="mu">No hay recargas por revisar.</p>'}</div><div class="sec"><h3>Historial de recargas</h3>${h.length?h.map(r=>recRow(r,`<span class="tag ${r.status}">${ST[r.status]}</span>`)).join(''):'<p class="mu">Sin movimientos todavía.</p>'}</div>`};
 const prodV=()=>`<div class="sec card"><h3>Crear producto</h3><div class="two"><div><label>Nombre</label><input id="pn" maxlength="80"></div><div><label>Precio (USD)</label><input id="pp" type="number" min="0" step="0.01"></div></div><label>Descripción</label><textarea id="pd" rows="3"></textarea><div class="two"><div><label>Categoría</label><input id="pc" list="cl" placeholder="Streaming, Música…"><datalist id="cl">${catOpts()}</datalist></div><div><label>¿Renovable?</label><select id="pr"><option value="1">Sí, renovable</option><option value="0">No renovable</option></select></div></div><div class="two"><div><label>Duración (días)</label><input id="pdays" type="number" min="1" value="30"></div><div><label>Link de la imagen (opcional)</label><input id="pi" placeholder="https://..."></div></div><button data-a="addp">Crear producto</button></div><div class="sec"><h3>Productos y stock (${S.prods.length})</h3>${srch('Buscar producto o categoría…')}<div id="lst">${prodList()}</div></div>`;
-const cliV=()=>{const c=S.users.filter(u=>u.id!==S.me.uid);return `<div class="sec"><h3>Clientes (${c.length})</h3>${c.length?c.map(u=>`<div class="row"><span><b>${esc(uname(u))}</b> · ${esc(u.email)}<br><small class="mu">Saldo: ${money(u.balance)}</small></span><button class="ghost" data-a="balm" data-id="${u.id}">Gestionar saldo</button></div>`).join(''):'<p class="mu">Aún no hay clientes registrados.</p>'}</div>`};
+const cliV=()=>{const c=S.users.filter(u=>u.id!==S.me.uid);return `<div class="sec"><h3>Clientes (${c.length})</h3>${c.length?c.map(u=>`<div class="row"><span><b>${esc(uname(u))}</b> · ${esc(u.email)}${S.users.filter(x=>String(x.email).toLowerCase()===String(u.email).toLowerCase()).length>1?' <span class="tag no">Correo repetido</span>':''}<br><small class="mu">Saldo: ${money(u.balance)}</small></span><button class="ghost" data-a="balm" data-id="${u.id}">Gestionar saldo</button></div>`).join(''):'<p class="mu">Aún no hay clientes registrados.</p>'}</div>`};
 const salesV=()=>`<div class="sec"><h3>Historial de compras (${S.orders.length})</h3>${srch('Buscar por correo, nombre o producto…')}<p class="mu">Total vendido: <b>${money(S.orders.reduce((s,x)=>s+x.price,0))}</b></p><div id="lst">${salesList()}</div></div>`;
 const confV=()=>`<div class="sec card"><h3>Configuración</h3><label>WhatsApp del soporte (con código de país, por ejemplo 51999999999)</label><input id="sw" value="${esc(S.wa)}"><button data-a="savewa" style="margin-top:10px">Guardar configuración</button></div>`;
 const VIEWS={catalog:()=>catBar()+`<div id="lst">${cards(flt())}</div>`,mine:()=>`<div class="sec"><h3>Mis compras (${S.orders.length})</h3>${srch('Buscar por correo o nombre del cliente…')}<div id="lst">${ordList()}</div></div>`,rec:()=>`<div class="sec"><h3>Mis recargas</h3>${S.rech.length?S.rech.map(x=>recRow(x,`<span class="tag ${x.status}">${ST[x.status]}</span>`)).join(''):'<p class="mu">Sin recargas.</p>'}</div>`,pend:pendV,prod:prodV,cli:cliV,sales:salesV,conf:confV};
@@ -215,9 +225,13 @@ Object.assign(A,{
   mode:d=>{S.mode=d.m;paint()},
   home:()=>{S.view='home';paint()},
   auth:async()=>{
+    if(A.auth.busy)return;
     const e=val('em').toLowerCase(),p=$('pw').value;
     if(!e||p.length<6)return toast('Ingresa un correo y una contraseña de 6 o más caracteres');
-    if(S.mode==='reg'){const n=val('nm');if(n.length<2)return toast('Escribe tu nombre de usuario');await register(n,e,p)}else await login(e,p);
+    A.auth.busy=true;
+    try{
+      if(S.mode==='reg'){const n=val('nm');if(n.length<2)return toast('Escribe tu nombre de usuario');await register(n,e,p)}else await login(e,p);
+    }finally{A.auth.busy=false}
   },
   logout:()=>logout(),
   tab:d=>{S.tab=d.t;S.q='';S.cat='';$('dw')?.classList.remove('on');paint(true)},
@@ -282,16 +296,23 @@ document.addEventListener('click',async e=>{
   if(e.target.id==='modal')return closeM();
   const b=e.target.closest('[data-a]');if(!b)return;
   e.preventDefault();
-  try{await A[b.dataset.a]?.(b.dataset,b)}catch(x){toast(err(x),6000)}
+  try{const r=A[b.dataset.a]?.(b.dataset,b);if(r&&r.then){b.disabled=true;try{await r}finally{b.disabled=false}}}catch(x){toast(err(x),6000)}
 });
 document.addEventListener('input',e=>I[e.target.dataset.i]?.(e.target.value));
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.dataset.enter)A[e.target.dataset.enter]().catch(x=>toast(err(x)))});
 try{localStorage.removeItem('ds_db');sessionStorage.removeItem('ds_me')}catch{}
 addEventListener('unhandledrejection',e=>toast(err(e.reason)));
 pub(()=>paint());
+let authTk=0;
 onAuthStateChanged(auth,async u=>{
+  const tk=++authTk;
   unlisten();Object.assign(S,{sec:{},orders:[],rech:[],users:[],free:{},bal:0,name:'',ud:null,q:'',cat:''});
   if(!u){S.me=null;S.adm=false;S.view='home'}
-  else{S.me=u;S.adm=await isAdmin(u);S.tab=S.adm?'pend':'catalog';priv(()=>paint())}
+  else{
+    const adm=await isAdmin(u);
+    if(!adm)await profile(u,S.pendName).catch(x=>console.warn('perfil:',x.code||x.message));
+    if(tk!==authTk)return;
+    S.pendName='';S.me=u;S.adm=adm;S.tab=adm?'pend':'catalog';priv(()=>paint());
+  }
   S.ready=true;paint(true);
 });
