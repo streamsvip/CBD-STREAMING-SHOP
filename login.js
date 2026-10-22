@@ -21,10 +21,10 @@ Object.assign(A,{
     if(A.auth.busy)return;
     const e=val('em').toLowerCase(),p=$('pw').value;
     if(!e||p.length<6)return toast('Ingresa un correo y una contraseña de 6 o más caracteres');
-    A.auth.busy=true;
+    A.auth.busy=true;const bt=document.querySelector('[data-a="auth"]'),tx=bt?bt.textContent:'';if(bt){bt.disabled=true;bt.textContent='Verificando…'}
     try{
-      if(S.mode==='reg'){const n=val('nm');if(n.length<2)return toast('Escribe tu nombre de usuario');showLoad('Creando tu cuenta…');await register(n,e,p)}else{showLoad('Ingresando…');await login(e,p)}
-    }catch(x){hideNow();throw x}finally{A.auth.busy=false}
+      if(S.mode==='reg'){const n=val('nm');if(n.length<2)return toast('Escribe tu nombre de usuario');await register(n,e,p)}else await login(e,p);showLoad('Ingresando…');
+    }finally{A.auth.busy=false;if(bt){bt.disabled=false;bt.textContent=tx}}
   },
 });
 start('login');
