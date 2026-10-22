@@ -115,7 +115,7 @@ html{scroll-behavior:smooth}
 @keyframes vin{from{opacity:0;transform:translateY(8px)}}
 @keyframes fin{from{opacity:0}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
-.ld{text-align:center;color:var(--mu);padding:30vh 0 0}
+.ld{display:none!important}
 .pwf{position:relative}
 .pwf input{padding-right:46px}
 .pwf .pweye{position:absolute;top:4px;bottom:10px;right:4px;width:40px;margin:0;padding:0;border:0;border-radius:6px;background:transparent;box-shadow:none;color:var(--mu);display:flex;align-items:center;justify-content:center;line-height:0;cursor:pointer;transition:color .15s,background .15s}
