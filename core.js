@@ -38,15 +38,28 @@ const app=initializeApp({
 });
 const auth=getAuth(app),db=getDatabase(app),root=ref(db),R=p=>ref(db,p);
 let subs=[];
-const on=(q,f)=>subs.push(onValue(q,f,e=>{console.warn('RTDB:',e.code||e.message);if(S.me)toast('Base de datos: sin permiso. Revisa que las reglas estén publicadas')}));
+/* ---- pantalla de carga: se oculta cuando sesión, datos, fuentes e imágenes visibles ya están listos ---- */
+const pend={pub:0,priv:0};let locked=0,hid=0,t0=performance.now();
+const once=k=>{let d=0;pend[k]++;return()=>{if(!d){d=1;pend[k]=Math.max(0,pend[k]-1);fin()}}};
+const fin=()=>{if(S.ready&&!locked&&!pend.pub&&!pend.priv)hideLoad()};
+function showLoad(m){locked=1;hid=0;t0=performance.now();const b=$('boot');if(!b)return;$('bm').textContent=m||'Cargando…';b.classList.remove('off')}
+const hideNow=()=>{locked=0;hid=1;$('boot')?.classList.add('off')};
+function hideLoad(){
+  if(hid)return;hid=1;
+  const imgs=[...document.images].filter(i=>!i.closest('#boot')&&!i.complete&&i.getBoundingClientRect().top<innerHeight).map(i=>new Promise(r=>{i.addEventListener('load',r,{once:true});i.addEventListener('error',r,{once:true})}));
+  Promise.race([Promise.all([document.fonts?document.fonts.ready:0,...imgs]),new Promise(r=>setTimeout(r,2500))]).then(()=>{
+    setTimeout(()=>requestAnimationFrame(()=>requestAnimationFrame(()=>$('boot')?.classList.add('off'))),Math.max(0,700-(performance.now()-t0)));
+  });
+}
+const on=(q,f)=>{const d=once('priv');subs.push(onValue(q,s=>{f(s);d()},e=>{console.warn('RTDB:',e.code||e.message);if(S.me)toast('Base de datos: sin permiso. Revisa que las reglas estén publicadas');d()}))};
 const arr=s=>{const r=[];s.forEach(c=>{r.push({id:c.key,...c.val()})});return r};
 const by=a=>a.sort((x,y)=>ms(y.createdAt)-ms(x.createdAt));
 const denied=e=>/permission/i.test(e?.code||e?.message||'');
 function pub(r){
-  onValue(R('products'),s=>{S.prods=arr(s);r()},()=>{});
-  onValue(R('settings/wa'),s=>{S.wa=s.val()||'';r()},()=>{});
+  const d1=once('pub');onValue(R('products'),s=>{S.prods=arr(s);r();d1()},()=>d1());
+  const d2=once('pub');onValue(R('settings/wa'),s=>{S.wa=s.val()||'';r();d2()},()=>d2());
 }
-const unlisten=()=>{subs.splice(0).forEach(f=>f())};
+const unlisten=()=>{subs.splice(0).forEach(f=>f());pend.priv=0};
 function priv(r){
   const u=S.me.uid,c=n=>S.adm?R(n):query(R(n),orderByChild('uid'),equalTo(u));
   on(R('users/'+u),s=>{const d=s.val()||{};S.ud=d;S.bal=Number(d.balance)||0;S.name=d.name||'';r()});
@@ -139,7 +152,7 @@ const copy=t=>navigator.clipboard.writeText(t).then(()=>toast('Copiado'),()=>toa
 Object.assign(A,{
   closeM,
   tg:()=>$('dw')?.classList.toggle('on'),
-  logout:()=>logout(),
+  logout:()=>{showLoad('Cerrando sesión…');return logout().catch(x=>{hideNow();throw x})},
   tab:d=>{S.tab=d.t;S.q='';S.cat='';$('dw')?.classList.remove('on');paint(true)},
   cat:d=>{S.cat=d.v;paint(true)},
   sup:()=>openWa(S.wa,'Hola, necesito soporte.'+(S.me?' Mi correo: '+S.me.email:'')),
@@ -162,6 +175,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.dataset.ent
 try{localStorage.removeItem('ds_db');sessionStorage.removeItem('ds_me')}catch{}
 addEventListener('unhandledrejection',e=>toast(err(e.reason)));
 pub(()=>paint());
+setTimeout(()=>{if(!locked)hideLoad()},10000);
 let authTk=0;
 onAuthStateChanged(auth,async u=>{
   const tk=++authTk;
@@ -177,7 +191,7 @@ onAuthStateChanged(auth,async u=>{
     if(page!==dest)return go(dest);
     S.pendName='';S.me=u;S.adm=adm;S.tab=adm?'pend':'catalog';priv(()=>paint());
   }
-  S.ready=true;paint(true);
+  S.ready=true;paint(true);fin();
 });
 }
-export {S,A,I,P,H,$,esc,usd,sol,money,ms,fd,period,vig,uname,wa9,parseAcc,PAY,toast,modal,closeM,err,db,root,R,arr,by,denied,fetchSec,set,update,push,get,increment,serverTimestamp,paint,shellPaint,start,LOGO,BURG,who,stk,em,buyer,srch,has,pimg,accMsg,two,cancel,eye,flt,cards,catBar,catOpts,ordList,recRow,ST,prodM,ordM,ord,prd,val,openWa,copy,login,register,userIssue,MIN,auth}
+export {S,A,I,P,H,$,esc,usd,sol,money,ms,fd,period,vig,uname,wa9,parseAcc,PAY,toast,modal,closeM,err,db,root,R,arr,by,denied,fetchSec,set,update,push,get,increment,serverTimestamp,paint,shellPaint,start,LOGO,BURG,who,stk,em,buyer,srch,has,pimg,accMsg,two,cancel,eye,flt,cards,catBar,catOpts,ordList,recRow,ST,prodM,ordM,ord,prd,val,openWa,copy,login,register,userIssue,MIN,auth,showLoad,hideNow}
