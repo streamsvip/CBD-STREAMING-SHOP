@@ -46,3 +46,11 @@ html.hw ::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--hw),va
 html.hw *{scrollbar-color:var(--hw) #07040d}
 html.hw #toast{background:var(--hw);color:#150a05}
 @media(max-width:560px){html.hw::before{width:100px;height:100px}}
+
+/* pantalla de carga en Halloween */
+html.hw #boot{background:radial-gradient(circle at 50% 38%,#3b0f66 0,#0a0510 48%,#050308 80%)}
+html.hw .bt-ring::before{background:conic-gradient(from 0deg,transparent 0 22%,#7c3aed 55%,#ff7518 100%)}
+html.hw .bt-ring img{box-shadow:0 0 28px #ff751888}
+html.hw .bt-bar i{background:linear-gradient(90deg,#7c3aed,#ff7518)}
+html.hw .foot .flogo{border-color:var(--hw);box-shadow:0 0 24px #ff751855}
+html.hw .fchips span{border-color:#ff751855}
