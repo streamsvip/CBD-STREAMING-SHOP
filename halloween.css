@@ -1,0 +1,40 @@
+/* =====================================================
+   HALLOWEEN — para quitarlo: borra este archivo y las
+   líneas <link ... halloween.css> de los .html
+   ===================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Creepster&display=swap');
+:root{--hw:#ff7518;--hw2:#ffa040}
+body{background-image:radial-gradient(circle at 50% -10%,#3b0f66 0,transparent 55%),radial-gradient(circle at 100% 100%,#ff751822 0,transparent 40%)}
+/* telaraña arriba a la izquierda y murciélagos */
+html::before{content:"";position:fixed;left:0;top:0;width:150px;height:150px;pointer-events:none;z-index:19;opacity:.55;
+ background:repeating-radial-gradient(circle at 0 0,transparent 0 17px,#c9b6f255 17px 18px),
+ repeating-conic-gradient(from 0deg at 0 0,transparent 0 14deg,#c9b6f255 14deg 15deg);
+ -webkit-mask:radial-gradient(circle at 0 0,#000 60%,transparent 72%);mask:radial-gradient(circle at 0 0,#000 60%,transparent 72%)}
+html::after{content:"🦇   🦇      🦇";position:fixed;top:calc(70px + env(safe-area-inset-top,0px));left:-120px;font-size:22px;white-space:pre;pointer-events:none;z-index:19;opacity:.7;animation:bats 22s linear infinite}
+@keyframes bats{to{transform:translateX(calc(100vw + 240px))}}
+/* títulos y logo */
+.hero h1,.logo b,.logo span{font-family:"Creepster","Orbitron",cursive;letter-spacing:2px;font-weight:400}
+.hero h1{font-size:clamp(34px,7vw,58px)}
+.hero h1 span{color:var(--hw);text-shadow:0 0 18px #ff751899}
+.hero h1::before{content:"🎃 ";}
+.hero h1::after{content:" 🎃"}
+.logo img{filter:drop-shadow(0 0 8px #ff751866)}
+.badge{border-color:var(--hw);color:var(--hw2)}
+.badge::before{content:"🎃 "}
+.badge::after{content:" 👻"}
+/* acentos naranja sobre el púrpura */
+.card:hover{border-color:var(--hw);box-shadow:0 8px 28px #ff751833}
+.card .p,.stats b,.p.big{color:var(--hw)}
+.chips span{border-color:var(--hw);color:var(--hw2)}
+.steps .card::before{background:var(--hw);color:#150a05}
+.bal{border-color:var(--hw);color:var(--hw2)}
+button:hover:not(:disabled){box-shadow:0 0 18px #ff751888}
+.box{border-color:var(--hw);box-shadow:0 0 40px #ff751844}
+.auth{border-color:var(--hw);box-shadow:0 0 30px #ff751833}
+.cred{border-color:var(--hw)}
+.top{border-bottom-color:#ff751866}
+.foot::before{content:"🕸️ 🎃 🕷️ 🎃 🕸️";display:block;font-size:22px;margin-bottom:8px}
+::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--hw),#7c3aed)}
+*{scrollbar-color:var(--hw) #07040d}
+#toast{background:var(--hw);color:#150a05}
+@media(max-width:560px){html::before{width:100px;height:100px}}
