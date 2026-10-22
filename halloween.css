@@ -1,40 +1,48 @@
 /* =====================================================
-   HALLOWEEN — para quitarlo: borra este archivo y las
-   líneas <link ... halloween.css> de los .html
+   HALLOWEEN — se activa con <html class="hw"> (lo pone halloween.js)
+   Botón 🎃 abajo a la izquierda = encender / apagar.
+   Para quitarlo del todo: borra halloween.css, halloween.js
+   y la línea marcada <!--HALLOWEEN--> en cada .html
    ===================================================== */
 @import url('https://fonts.googleapis.com/css2?family=Creepster&display=swap');
-:root{--hw:#ff7518;--hw2:#ffa040}
-body{background-image:radial-gradient(circle at 50% -10%,#3b0f66 0,transparent 55%),radial-gradient(circle at 100% 100%,#ff751822 0,transparent 40%)}
-/* telaraña arriba a la izquierda y murciélagos */
-html::before{content:"";position:fixed;left:0;top:0;width:150px;height:150px;pointer-events:none;z-index:19;opacity:.55;
- background:repeating-radial-gradient(circle at 0 0,transparent 0 17px,#c9b6f255 17px 18px),
- repeating-conic-gradient(from 0deg at 0 0,transparent 0 14deg,#c9b6f255 14deg 15deg);
+
+/* --- botón de encendido/apagado (siempre visible) --- */
+#hwbtn{position:fixed;left:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:45;display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:30px;font-size:13px;background:#000c;color:#a99bc0;border:1px solid #2e1450;box-shadow:none}
+#hwbtn.on{color:#ffa040;border-color:#ff7518;box-shadow:0 0 14px #ff751855}
+@media(max-width:560px){#hwbtn span{display:none}#hwbtn{padding:10px}}
+
+/* --- estilo (solo con html.hw) --- */
+html.hw{--hw:#ff7518;--hw2:#ffa040}
+html.hw body{background-image:radial-gradient(circle at 50% -10%,#3b0f66 0,transparent 55%),radial-gradient(circle at 100% 100%,#ff751822 0,transparent 40%)}
+html.hw::before{content:"";position:fixed;left:0;top:0;width:150px;height:150px;pointer-events:none;z-index:19;opacity:.55;
+ background:repeating-radial-gradient(circle at 0 0,transparent 0 17px,#c9b6f255 17px 18px),repeating-conic-gradient(from 0deg at 0 0,transparent 0 14deg,#c9b6f255 14deg 15deg);
  -webkit-mask:radial-gradient(circle at 0 0,#000 60%,transparent 72%);mask:radial-gradient(circle at 0 0,#000 60%,transparent 72%)}
-html::after{content:"🦇   🦇      🦇";position:fixed;top:calc(70px + env(safe-area-inset-top,0px));left:-120px;font-size:22px;white-space:pre;pointer-events:none;z-index:19;opacity:.7;animation:bats 22s linear infinite}
+html.hw::after{content:"🦇   🦇      🦇";position:fixed;top:calc(70px + env(safe-area-inset-top,0px));left:-120px;font-size:22px;white-space:pre;pointer-events:none;z-index:19;opacity:.7;animation:bats 22s linear infinite}
 @keyframes bats{to{transform:translateX(calc(100vw + 240px))}}
-/* títulos y logo */
-.hero h1,.logo b,.logo span{font-family:"Creepster","Orbitron",cursive;letter-spacing:2px;font-weight:400}
-.hero h1{font-size:clamp(34px,7vw,58px)}
-.hero h1 span{color:var(--hw);text-shadow:0 0 18px #ff751899}
-.hero h1::before{content:"🎃 ";}
-.hero h1::after{content:" 🎃"}
-.logo img{filter:drop-shadow(0 0 8px #ff751866)}
-.badge{border-color:var(--hw);color:var(--hw2)}
-.badge::before{content:"🎃 "}
-.badge::after{content:" 👻"}
-/* acentos naranja sobre el púrpura */
-.card:hover{border-color:var(--hw);box-shadow:0 8px 28px #ff751833}
-.card .p,.stats b,.p.big{color:var(--hw)}
-.chips span{border-color:var(--hw);color:var(--hw2)}
-.steps .card::before{background:var(--hw);color:#150a05}
-.bal{border-color:var(--hw);color:var(--hw2)}
-button:hover:not(:disabled){box-shadow:0 0 18px #ff751888}
-.box{border-color:var(--hw);box-shadow:0 0 40px #ff751844}
-.auth{border-color:var(--hw);box-shadow:0 0 30px #ff751833}
-.cred{border-color:var(--hw)}
-.top{border-bottom-color:#ff751866}
-.foot::before{content:"🕸️ 🎃 🕷️ 🎃 🕸️";display:block;font-size:22px;margin-bottom:8px}
-::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--hw),#7c3aed)}
-*{scrollbar-color:var(--hw) #07040d}
-#toast{background:var(--hw);color:#150a05}
-@media(max-width:560px){html::before{width:100px;height:100px}}
+html.hw .hero h1,html.hw .logo b,html.hw .logo span,html.hw .aside h2{font-family:"Creepster","Orbitron",cursive;letter-spacing:2px;font-weight:400}
+html.hw .hero h1{font-size:clamp(34px,7vw,58px)}
+html.hw .hero h1 span,html.hw .aside h2 span{color:var(--hw);text-shadow:0 0 18px #ff751899}
+html.hw .hero h1::before{content:"🎃 "}html.hw .hero h1::after{content:" 🎃"}
+html.hw .logo img,html.hw .alogo,html.hw .flogo{filter:drop-shadow(0 0 8px #ff751866)}
+html.hw .badge{border-color:var(--hw);color:var(--hw2)}
+html.hw .badge .dot{background:var(--hw);box-shadow:0 0 8px var(--hw)}
+html.hw .badge::before{content:"🎃 "}html.hw .badge::after{content:" 👻"}
+html.hw .card:hover{border-color:var(--hw);box-shadow:0 8px 28px #ff751833}
+html.hw .card .p,html.hw .p.big,html.hw .stats b,html.hw .kpis>div:first-child b{color:var(--hw);text-shadow:0 0 14px #ff751855}
+html.hw .chips span{border-color:var(--hw);color:var(--hw2)}
+html.hw .steps .card::before{background:var(--hw);color:#150a05}
+html.hw .st::after{background:linear-gradient(90deg,var(--hw),var(--pu))}
+html.hw .faq summary::after{color:var(--hw)}
+html.hw .bal{border-color:var(--hw);color:var(--hw2)}
+html.hw button:hover:not(:disabled){box-shadow:0 0 18px #ff751888}
+html.hw .box{border-color:var(--hw);box-shadow:0 0 40px #ff751844}
+html.hw .auth{border-color:var(--hw);box-shadow:0 0 30px #ff751833}
+html.hw .bnr{box-shadow:0 0 30px #ff751833}
+html.hw .hello{border-color:#ff751855}
+html.hw .cred{border-color:var(--hw)}
+html.hw .top{box-shadow:0 1px 0 #ff751877}
+html.hw .foot::before{content:"🕸️ 🎃 🕷️ 🎃 🕸️";display:block;font-size:22px;margin-bottom:8px}
+html.hw ::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--hw),var(--pu))}
+html.hw *{scrollbar-color:var(--hw) #07040d}
+html.hw #toast{background:var(--hw);color:#150a05}
+@media(max-width:560px){html.hw::before{width:100px;height:100px}}
