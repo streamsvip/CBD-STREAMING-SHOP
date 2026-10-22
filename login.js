@@ -1,5 +1,5 @@
 import * as K from './core.js';
-const {S,A,I,P,H,$,esc,usd,sol,money,ms,fd,period,vig,uname,wa9,parseAcc,PAY,toast,modal,closeM,err,db,root,R,arr,by,denied,fetchSec,set,update,push,get,increment,serverTimestamp,paint,shellPaint,start,LOGO,BURG,who,stk,em,buyer,srch,has,pimg,accMsg,two,cancel,eye,flt,cards,catBar,catOpts,ordList,recRow,ST,prodM,ordM,ord,prd,val,openWa,copy,login,register,userIssue,MIN}=K;
+const {S,A,I,P,H,$,esc,usd,sol,money,ms,fd,period,vig,uname,wa9,parseAcc,PAY,toast,modal,closeM,err,db,root,R,arr,by,denied,fetchSec,set,update,push,get,increment,serverTimestamp,paint,shellPaint,start,LOGO,BURG,who,stk,em,buyer,srch,has,pimg,accMsg,two,cancel,eye,flt,cards,catBar,catOpts,ordList,recRow,ST,prodM,ordM,ord,prd,val,openWa,copy,login,register,userIssue,MIN,showLoad,hideNow}=K;
 
 const EYE='<svg class="open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 19c-7 0-11-7-11-7a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>';
 const landing=()=>`<div class="top">${LOGO}<div class="r"><button class="ghost out" data-a="go" data-m="login">Ingresar</button><button class="out" data-a="go" data-m="reg">Registrarme</button>${BURG}</div></div><div id="dw" class="dw"><div class="dov" data-a="tg"></div><aside class="dp"><button data-a="go" data-m="reg">Crear cuenta gratis</button><button class="ghost" data-a="go" data-m="login">Ingresar</button></aside></div>
@@ -16,15 +16,15 @@ Object.assign(A,{
   goauth:()=>{closeM();S.mode='login';S.view='auth';paint(true);scrollTo(0,0)},
   mode:d=>{S.mode=d.m;paint(true)},
   home:()=>{S.view='home';paint(true)},
-  seepw:(d,b)=>{const i=$('pw'),s=i.type==='password';i.type=s?'text':'password';b.classList.toggle('on',s);b.setAttribute('aria-label',s?'Ocultar contraseña':'Mostrar contraseña');i.focus()},
+  seepw:(d,b)=>{const i=$('pw'),s=i.type==='password';i.type=s?'text':'password';b.classList.toggle('on',s);b.setAttribute('aria-pressed',s);b.setAttribute('aria-label',s?'Ocultar contraseña':'Mostrar contraseña');i.focus()},
   auth:async()=>{
     if(A.auth.busy)return;
     const e=val('em').toLowerCase(),p=$('pw').value;
     if(!e||p.length<6)return toast('Ingresa un correo y una contraseña de 6 o más caracteres');
     A.auth.busy=true;
     try{
-      if(S.mode==='reg'){const n=val('nm');if(n.length<2)return toast('Escribe tu nombre de usuario');await register(n,e,p)}else await login(e,p);
-    }finally{A.auth.busy=false}
+      if(S.mode==='reg'){const n=val('nm');if(n.length<2)return toast('Escribe tu nombre de usuario');showLoad('Creando tu cuenta…');await register(n,e,p)}else{showLoad('Ingresando…');await login(e,p)}
+    }catch(x){hideNow();throw x}finally{A.auth.busy=false}
   },
 });
 start('login');
