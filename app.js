@@ -21,10 +21,10 @@ const uname=u=>u?.name||u?.email?.split('@')[0]||'—';
 const wa9=v=>{v=String(v||'').replace(/\D/g,'');return v.length===9?'51'+v:v};
 const parseAcc=a=>{const p=String(a||'').split('|').map(x=>x.trim());return p.length<2?[['Cuenta',a||'(cargando…)']]:['Correo','Contraseña','Perfil','PIN'].map((l,i)=>[l,p[i]]).filter(x=>x[1])};
 const PAY={yape:{n:'Yape',rows:[['Número','965730677'],['Nombre','Cristhian Eddy C. A.']],qr:'yaqr.jpeg',note:'Paga el equivalente en soles.'},bin:{n:'Binance Pay',rows:[['ID de usuario','1250169311'],['Nombre','CRB TECH SHP']],qr:'binqr.jpeg',note:'Paga el monto en dólares (USDT).'}};
-function toast(t){const e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',2800)}
+function toast(t,d=2800){const e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',d)}
 const modal=h=>{$('mbox').innerHTML=h;$('modal').classList.add('on')};
 const closeM=()=>$('modal').classList.remove('on');
-const MSG={'auth/invalid-credential':'Correo o contraseña incorrectos','auth/invalid-login-credentials':'Correo o contraseña incorrectos','auth/email-already-in-use':'Ese correo ya está registrado','auth/weak-password':'Contraseña muy débil (mínimo 6)','auth/invalid-email':'Correo inválido','auth/operation-not-allowed':'Activa Correo/Contraseña en Firebase → Authentication → Método de acceso','auth/network-request-failed':'Sin conexión con Firebase','auth/invalid-api-key':'La API key de Firebase no es válida','auth/unauthorized-domain':'Agrega tu dominio en Authentication → Configuración → Dominios autorizados','auth/too-many-requests':'Demasiados intentos, espera un momento','permission-denied':'Operación no permitida (revisa los datos o las reglas)'};
+const MSG={'auth/invalid-credential':'Correo o contraseña incorrectos','auth/invalid-login-credentials':'Correo o contraseña incorrectos','auth/email-already-in-use':'Ese correo ya está registrado','auth/weak-password':'Contraseña muy débil (mínimo 6)','auth/invalid-email':'Correo inválido','auth/operation-not-allowed':'Activa Correo/Contraseña en Firebase → Authentication → Método de acceso','auth/network-request-failed':'Sin conexión con Firebase','auth/invalid-api-key':'La API key de Firebase no es válida','auth/unauthorized-domain':'Agrega tu dominio en Authentication → Configuración → Dominios autorizados','auth/too-many-requests':'Demasiados intentos, espera un momento','permission-denied':'Firebase rechazó la operación. Revisa que las reglas estén publicadas y que el usuario tenga sus datos completos (email, role, balance)'};
 const err=e=>typeof e==='string'?e:(MSG[e?.code]||((e?.code||'').startsWith('auth/requests-from-referer')?'La API key bloquea este dominio: agrégalo en Google Cloud → Credenciales → Referentes HTTP':(e?.message||'Error inesperado')));
 
 /* ===== Firebase: Auth + Realtime Database ===== */
@@ -50,7 +50,7 @@ function pub(r){
 const unlisten=()=>{subs.splice(0).forEach(f=>f())};
 function priv(r){
   const u=S.me.uid,c=n=>S.adm?R(n):query(R(n),orderByChild('uid'),equalTo(u));
-  on(R('users/'+u),s=>{const d=s.val()||{};S.bal=d.balance||0;S.name=d.name||'';r()});
+  on(R('users/'+u),s=>{const d=s.val()||{};S.ud=d;S.bal=Number(d.balance)||0;S.name=d.name||'';r()});
   on(query(R('stock'),orderByChild('sold'),equalTo(false)),s=>{S.free={};s.forEach(x=>{(S.free[x.val().pid]??=[]).push(x.key)});r()});
   on(c('orders'),s=>{S.orders=by(arr(s));r();if(!S.adm)fetchSec(S.orders.slice(0,40).map(o=>o.sid)).then(r)});
   on(c('recharges'),s=>{S.rech=by(arr(s));r()});
@@ -76,6 +76,7 @@ async function buy(p,cname,cwa){
   const ids=[...(S.free[p.id]||[])],u=S.me.uid;
   if(!ids.length)throw 'Producto sin stock';
   if(S.bal<p.price)throw 'Saldo insuficiente. Recarga para continuar';
+  const bad=userIssue(S.ud);if(bad)throw 'Tu cuenta tiene un problema: '+bad+'. Contacta al soporte.';
   for(let t=0;t<3&&ids.length;t++){
     const sid=ids.splice(Math.random()*ids.length|0,1)[0],oid=push(R('orders')).key,x={};
     x['orders/'+oid]={uid:u,pid:p.id,sid,pname:p.name,price:p.price,days:p.days,ren:p.ren,img:p.img||'',cname,cwa,createdAt:serverTimestamp()};
@@ -83,7 +84,15 @@ async function buy(p,cname,cwa){
     x['users/'+u+'/balance']=increment(-p.price);x['users/'+u+'/lastOrder']=oid;
     try{await update(root,x);await fetchSec([sid]);return {oid,sid}}catch(e){if(!denied(e))throw e}
   }
-  throw 'No se pudo completar la compra, intenta de nuevo';
+  throw 'No se pudo completar la compra. Si se repite, avisa al soporte: el stock pudo agotarse o falta publicar las reglas.';
+}
+/* Detecta datos de usuario que las reglas rechazan (saldo como texto, campos faltantes) */
+function userIssue(u){
+  if(!u||typeof u!=='object')return 'el usuario no existe en la base de datos';
+  const miss=['email','role','balance'].filter(k=>u[k]===undefined||u[k]===null);
+  if(miss.length)return 'le falta el dato '+miss.join(', ');
+  if(typeof u.balance!=='number')return 'el saldo está guardado como texto ("'+u.balance+'")';
+  return '';
 }
 const saveCli=(id,cn,cw)=>update(root,{['orders/'+id+'/cname']:cn,['orders/'+id+'/cwa']:cw});
 const recharge=(amount,rf)=>set(R('recharges/'+S.pm+'_'+rf),{uid:S.me.uid,email:S.me.email,amount,method:S.pm,ref:rf,status:'pend',createdAt:serverTimestamp()})
@@ -91,6 +100,7 @@ const recharge=(amount,rf)=>set(R('recharges/'+S.pm+'_'+rf),{uid:S.me.uid,email:
 /* ---- administrador ---- */
 async function decide(id,ok){
   const r=S.rech.find(x=>x.id===id);if(!r||r.status!=='pend')return;
+  if(ok){const bad=userIssue(S.users.find(u=>u.id===r.uid));if(bad)throw 'No se puede acreditar a '+r.email+': '+bad+'. Corrígelo en Gestionar saldo (Establecer saldo) o en Firebase y vuelve a intentar.'}
   const x={};
   x['recharges/'+id+'/status']=ok?'ok':'no';x['recharges/'+id+'/reviewedAt']=serverTimestamp();x['recharges/'+id+'/reviewedBy']=S.me.uid;
   if(ok)x['users/'+r.uid+'/balance']=increment(r.amount);
@@ -116,9 +126,9 @@ async function addStock(pid,lines){
 }
 const saveAcc=(sid,account)=>set(R('secrets/'+sid),account);
 async function setBal(u,mode,v){
-  const nv=mode==='add'?u.balance+v:v,x={};
-  x['users/'+u.id+'/balance']=nv;
-  x['balanceLogs/'+push(R('balanceLogs')).key]={uid:u.id,by:S.me.uid,mode,amount:v,before:u.balance,after:nv,createdAt:serverTimestamp()};
+  const base=Number(u.balance)||0,nv=mode==='add'?Math.round((base+v)*100)/100:v,x={};
+  x['users/'+u.id+'/balance']=mode==='add'?increment(v):v;
+  x['balanceLogs/'+push(R('balanceLogs')).key]={uid:u.id,by:S.me.uid,mode,amount:v,before:base,after:nv,createdAt:serverTimestamp()};
   await update(root,x);
 }
 const saveWa=wa=>set(R('settings/wa'),wa);
@@ -138,9 +148,10 @@ const pimg=(p,c='')=>`<div class="pw ${c}"><div class="ph">${esc((p.name||'?').t
 const accMsg=o=>'*'+o.pname+'*\n'+parseAcc(S.sec[o.sid]).map(x=>x[0]+': '+x[1]).join('\n')+'\nVigencia: '+period(o)+' ('+o.days+' días, '+(o.ren?'renovable':'no renovable')+')\n\n¡Gracias por tu compra en CBD STREAMING SHOP!';
 const two=(a,b)=>`<div class="two">${a}${b}</div>`;
 const cancel='<button class="ghost" data-a="closeM">Cancelar</button>';
+const eye=id=>`<button class="ghost eye" data-a="prod" data-id="${id}" title="Ver descripción completa" aria-label="Ver descripción completa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></button>`;
 /* ---- catálogo ---- */
 const flt=()=>S.prods.filter(p=>(!S.cat||p.cat===S.cat)&&has([p.name,p.desc,p.cat],S.q));
-const cards=l=>l.length?`<div class="grid">${l.map(p=>`<div class="card pc" style="cursor:pointer" data-a="prod" data-id="${p.id}">${pimg(p)}${p.cat?`<span class="tag">${esc(p.cat)}</span>`:''}<h3>${esc(p.name)}</h3><small>${esc(p.desc)}</small><div class="p">${money(p.price)}</div><div class="meta"><span>⏱ ${p.days} días</span><span>${p.ren?'Renovable':'No renovable'}</span><span>Stock ${stk(p)}</span></div>${S.adm?`<div class="two"><button class="ghost" data-a="editp" data-id="${p.id}">Editar</button><button class="no" data-a="delp" data-id="${p.id}">Eliminar</button></div>`:`<button ${stk(p)?'':'disabled'} data-a="buy" data-id="${p.id}">${stk(p)?'Comprar':'Agotado'}</button>`}</div>`).join('')}</div>`:'<p class="mu">No hay productos para mostrar.</p>';
+const cards=l=>l.length?`<div class="grid">${l.map(p=>`<div class="card pc" style="cursor:pointer" data-a="prod" data-id="${p.id}">${pimg(p)}${p.cat?`<span class="tag">${esc(p.cat)}</span>`:''}<h3>${esc(p.name)}</h3><small>${esc(p.desc)}</small><div class="p">${money(p.price)}</div><div class="meta"><span>⏱ ${p.days} días</span><span>${p.ren?'Renovable':'No renovable'}</span><span>Stock ${stk(p)}</span></div>${S.adm?`<div class="bar"><button class="ghost" data-a="editp" data-id="${p.id}">Editar</button><button class="no" data-a="delp" data-id="${p.id}">Eliminar</button>${eye(p.id)}</div>`:`<div class="bar"><button ${stk(p)?'':'disabled'} data-a="buy" data-id="${p.id}">${stk(p)?'Comprar':'Agotado'}</button>${eye(p.id)}</div>`}</div>`).join('')}</div>`:'<p class="mu">No hay productos para mostrar.</p>';
 const catBar=()=>`<div class="cbar">${srch('Buscar producto…')}<div class="chips2"><button class="${S.cat?'ghost':''}" data-a="cat" data-v="">Todas</button>${[...new Set(S.prods.map(p=>p.cat).filter(Boolean))].map(c=>`<button class="${S.cat===c?'':'ghost'}" data-a="cat" data-v="${esc(c)}">${esc(c)}</button>`).join('')}</div></div>`;
 const catOpts=()=>[...new Set(S.prods.map(p=>p.cat).filter(Boolean))].map(c=>`<option value="${esc(c)}">`).join('');
 /* ---- compras / recargas ---- */
@@ -178,6 +189,7 @@ const shellV=()=>`<div class="top">${LOGO}<div class="r">${S.adm?'':'<span class
 function paint(force){
   const a=$('app');if(!S.ready)return;
   if(!S.me){shell=null;a.innerHTML=S.view==='home'?landing():authV();return}
+  ['bal1','bal2'].forEach(i=>{const e=$(i);if(e)e.innerHTML='Saldo: '+money(S.bal)});
   const f=document.activeElement;
   if(!force&&f&&f.closest('#view')&&/INPUT|TEXTAREA|SELECT/.test(f.tagName))return;
   if(shell!==S.me.uid||!$('view')){shell=S.me.uid;a.innerHTML=shellV()}
@@ -270,7 +282,7 @@ document.addEventListener('click',async e=>{
   if(e.target.id==='modal')return closeM();
   const b=e.target.closest('[data-a]');if(!b)return;
   e.preventDefault();
-  try{await A[b.dataset.a]?.(b.dataset,b)}catch(x){toast(err(x))}
+  try{await A[b.dataset.a]?.(b.dataset,b)}catch(x){toast(err(x),6000)}
 });
 document.addEventListener('input',e=>I[e.target.dataset.i]?.(e.target.value));
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.dataset.enter)A[e.target.dataset.enter]().catch(x=>toast(err(x)))});
@@ -278,7 +290,7 @@ try{localStorage.removeItem('ds_db');sessionStorage.removeItem('ds_me')}catch{}
 addEventListener('unhandledrejection',e=>toast(err(e.reason)));
 pub(()=>paint());
 onAuthStateChanged(auth,async u=>{
-  unlisten();Object.assign(S,{sec:{},orders:[],rech:[],users:[],free:{},bal:0,name:'',q:'',cat:''});
+  unlisten();Object.assign(S,{sec:{},orders:[],rech:[],users:[],free:{},bal:0,name:'',ud:null,q:'',cat:''});
   if(!u){S.me=null;S.adm=false;S.view='home'}
   else{S.me=u;S.adm=await isAdmin(u);S.tab=S.adm?'pend':'catalog';priv(()=>paint())}
   S.ready=true;paint(true);
