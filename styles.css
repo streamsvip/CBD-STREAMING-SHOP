@@ -116,8 +116,23 @@ html{scroll-behavior:smooth}
 @keyframes fin{from{opacity:0}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
 .ld{text-align:center;color:var(--mu);padding:30vh 0 0}
-.pwf{position:relative}.pwf input{padding-right:48px}
-.pweye{position:absolute;right:0;top:4px;bottom:10px;width:44px;padding:0;background:transparent;box-shadow:none;color:var(--mu);display:grid;place-items:center}
-.pweye:hover:not(:disabled){transform:none;color:var(--red2);filter:none}
-.pweye svg{width:20px;height:20px}.pweye .off{display:none}.pweye.on .off{display:block}.pweye.on .open{display:none}
-
+.pwf{position:relative}
+.pwf input{padding-right:46px}
+.pwf .pweye{position:absolute;top:4px;bottom:10px;right:4px;width:40px;margin:0;padding:0;border:0;border-radius:6px;background:transparent;box-shadow:none;color:var(--mu);display:flex;align-items:center;justify-content:center;line-height:0;cursor:pointer;transition:color .15s,background .15s}
+.pwf .pweye:hover:not(:disabled){background:#ffffff0d;color:var(--tx);transform:none;filter:none}
+.pwf .pweye.on{color:var(--red2)}
+.pwf .pweye:focus-visible{outline:2px solid var(--red2);outline-offset:-2px}
+.pweye svg{width:20px;height:20px;display:block}
+.pweye .off{display:none}.pweye.on .off{display:block}.pweye.on .open{display:none}
+#boot{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:radial-gradient(circle at 50% 35%,#2a0507 0,#050505 62%);transition:opacity .4s ease,visibility .4s}
+#boot.off{opacity:0;visibility:hidden;pointer-events:none}
+#boot .bx{display:flex;flex-direction:column;align-items:center;gap:22px;padding:24px;text-align:center}
+#boot .bl{font-family:Orbitron,sans-serif;font-weight:800;letter-spacing:1px;font-size:20px;color:#fff}
+#boot .bl img{display:block;height:58px;max-width:240px;object-fit:contain;filter:drop-shadow(0 0 18px #e1060088)}
+#boot .sp{width:56px;height:56px;border-radius:50%;border:3px solid #3a1114;border-top-color:var(--red2);box-shadow:0 0 24px #e1060044;animation:spin .85s linear infinite}
+#boot p{margin:0;color:var(--mu);font-size:14px;letter-spacing:.5px}
+#boot .bb{width:170px;height:3px;border-radius:3px;background:#2a1517;overflow:hidden}
+#boot .bb i{display:block;width:40%;height:100%;background:linear-gradient(90deg,transparent,var(--red2),transparent);animation:bar 1.2s ease-in-out infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes bar{from{transform:translateX(-100%)}to{transform:translateX(260%)}}
+@media(prefers-reduced-motion:reduce){#boot .sp{animation:spin 1.6s linear infinite!important}#boot{transition:none!important}}
