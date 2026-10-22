@@ -44,7 +44,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 .steps{counter-reset:s}.steps .card::before{counter-increment:s;content:counter(s);width:30px;height:30px;border-radius:50%;background:var(--red);display:grid;place-items:center;font-weight:800}
 .foot{text-align:center;color:var(--mu);padding:30px 16px 40px;border-top:1px solid var(--line)}
 body{padding-bottom:48px}
-.logo img{height:42px;max-width:220px;object-fit:contain;vertical-align:middle}
+.logo img{width:42px;height:42px;border-radius:50%;object-fit:cover;vertical-align:middle;border:2px solid var(--red);box-shadow:0 0 12px #e1060066}
 .pi{width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:8px}
 .wm{position:fixed;right:10px;bottom:calc(8px + env(safe-area-inset-bottom,0px));font-size:12px;color:var(--mu);background:#000b;border:1px solid var(--line);border-radius:20px;padding:3px 10px;cursor:pointer;z-index:40}
 .wm:hover{color:#fff;border-color:var(--red)}
@@ -128,7 +128,7 @@ html{scroll-behavior:smooth}
 #boot.off{opacity:0;visibility:hidden;pointer-events:none}
 #boot .bx{display:flex;flex-direction:column;align-items:center;gap:22px;padding:24px;text-align:center}
 #boot .bl{font-family:Orbitron,sans-serif;font-weight:800;letter-spacing:1px;font-size:20px;color:#fff}
-#boot .bl img{display:block;height:58px;max-width:240px;object-fit:contain;filter:drop-shadow(0 0 18px #e1060088)}
+#boot .bl img{display:block;width:76px;height:76px;border-radius:50%;object-fit:cover;border:2px solid var(--red);box-shadow:0 0 26px #e1060088}
 #boot .sp{width:56px;height:56px;border-radius:50%;border:3px solid #3a1114;border-top-color:var(--red2);box-shadow:0 0 24px #e1060044;animation:spin .85s linear infinite}
 #boot p{margin:0;color:var(--mu);font-size:14px;letter-spacing:.5px}
 #boot .bb{width:170px;height:3px;border-radius:3px;background:#2a1517;overflow:hidden}
