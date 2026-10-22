@@ -143,3 +143,56 @@ html{scroll-behavior:smooth}
 .st::after{content:"";display:block;width:52px;height:3px;border-radius:3px;background:var(--red);margin:9px auto 0;box-shadow:0 0 12px #e1060099}
 .alogo{display:block;width:96px;height:96px;border-radius:50%;object-fit:cover;margin:0 auto;border:2px solid var(--red);box-shadow:0 0 30px #e1060066}
 .flogo{display:block;width:60px;height:60px;border-radius:50%;object-fit:cover;margin:0 auto 12px;border:2px solid var(--red);box-shadow:0 0 18px #e1060055}
+/* ===== login / inicio ===== */
+.hero h1{font-size:clamp(30px,6.2vw,52px);line-height:1.12;font-weight:800}
+.hero h1 span{background:linear-gradient(90deg,#ff3b30,#ff8a5c);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none}
+.badge{display:inline-flex;align-items:center;gap:8px}
+.dot{width:8px;height:8px;border-radius:50%;background:#3ddc84;box-shadow:0 0 10px #3ddc84;animation:pulse2 1.6s ease-in-out infinite}
+@keyframes pulse2{50%{opacity:.35}}
+.feat{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:0 0 26px}
+.feat>div{display:grid;grid-template-columns:46px 1fr;column-gap:14px;align-items:center;background:linear-gradient(180deg,#160a0c,#0e0708);border:1px solid var(--line);border-radius:14px;padding:16px;transition:border-color .2s,transform .2s}
+.feat>div:hover{border-color:var(--red);transform:translateY(-2px)}
+.feat i,.aside li i{grid-row:span 2;width:46px;height:46px;border-radius:12px;display:grid;place-items:center;background:#1f0b0d;color:var(--red2);border:1px solid var(--red);box-shadow:0 0 16px #e1060033}
+.feat svg{width:22px;height:22px}.feat small,.aside small{color:var(--mu)}
+.chips{margin-bottom:30px}.chips span{font-size:13px;letter-spacing:.2px}
+.steps .card{align-items:flex-start}
+.faq{max-width:760px;margin:0 auto;display:grid;gap:10px}
+.faq details{background:linear-gradient(180deg,#160a0c,#0e0708);border:1px solid var(--line);border-radius:12px;padding:0 16px;transition:border-color .2s}
+.faq summary{cursor:pointer;padding:14px 0;font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:10px}
+.faq summary::-webkit-details-marker{display:none}.faq summary::after{content:"+";color:var(--red2);font-size:20px;line-height:1}
+.faq details[open]{border-color:var(--red)}.faq details[open] summary::after{content:"–"}
+.faq p{margin:0 0 14px;color:#d8cccc}
+.foot b{display:block;font-family:Orbitron,sans-serif;letter-spacing:1px;color:var(--tx);margin-bottom:6px}.foot .cp{font-size:12px;margin-top:20px}
+/* ===== ingreso / registro ===== */
+.authwrap{display:grid;grid-template-columns:1fr 1.05fr;max-width:900px;margin:6vh auto;border:1px solid var(--red);border-radius:20px;overflow:hidden;background:#0b0506;box-shadow:0 0 44px #e1060044}
+.aside{padding:36px 32px;display:flex;flex-direction:column;justify-content:center;gap:18px;background:radial-gradient(circle at 20% 0,#3a0608 0,#120507 70%);border-right:1px solid var(--line)}
+.aside h2{font-size:24px;line-height:1.25}.aside h2 span{color:var(--red2)}.aside p{margin:0;color:var(--mu)}
+.aside ul{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:16px}
+.aside li{display:grid;grid-template-columns:46px 1fr;column-gap:14px;align-items:center}.aside li svg{width:22px;height:22px}
+.authwrap .auth{max-width:none;margin:0;border:0;border-radius:0;box-shadow:none;background:transparent;padding:32px}
+@media(max-width:760px){.authwrap{grid-template-columns:1fr;margin:3vh 12px}.aside{display:none}.authwrap .auth{padding:24px 20px}}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;margin:16px 0;background:#0a0405;border:1px solid var(--line);border-radius:10px}
+.seg button{background:transparent;box-shadow:none;color:var(--mu);padding:9px}.seg button:hover:not(:disabled){transform:none;filter:none;color:var(--tx)}
+.seg button.on{background:linear-gradient(180deg,var(--red2),var(--red));color:#fff;box-shadow:0 0 14px #e1060055}
+.fi{position:relative}.fi input{padding-left:40px}.fi.pwf input{padding-right:46px}
+.fi .ic{position:absolute;left:12px;top:4px;bottom:10px;display:flex;align-items:center;color:var(--mu);pointer-events:none}.fi .ic svg{width:18px;height:18px}
+.lnk{float:right;background:none;border:0;box-shadow:none;padding:0;font-size:12px;font-weight:600;color:var(--red2)}
+.lnk:hover:not(:disabled){transform:none;filter:none;text-decoration:underline}
+.meter{height:4px;border-radius:4px;background:#2a1517;overflow:hidden;margin:-2px 0 6px}.meter i{display:block;height:100%;width:0;transition:width .25s,background .25s}
+.hint{display:block;margin:0 0 12px;font-size:12px}
+.note{display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;margin:14px 0 0}.note svg{width:14px;height:14px}
+/* ===== catálogo ===== */
+.hello{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px;padding:18px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(135deg,#1a0a0c,#0e0708)}
+.hello h2{font-size:22px;margin-top:2px}
+.kpis{display:flex;gap:10px;flex-wrap:wrap}.kpis>div{min-width:110px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:#0a0405}
+.kpis b{display:block;font-size:18px;font-family:Orbitron,sans-serif;color:var(--red2)}.kpis small{color:var(--mu);font-size:12px}
+.tools{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.sbox{position:relative;flex:1 1 260px}.sbox .srch{margin:0;padding-left:40px}
+.sbox .ic{position:absolute;left:12px;top:0;bottom:0;display:flex;align-items:center;color:var(--mu);pointer-events:none}.sbox .ic svg{width:18px;height:18px}
+.sort{flex:0 0 230px;width:auto;margin:0}
+.chips2 .cnt{margin-left:4px;font-size:11px;opacity:.7}
+.rcount{margin:0 0 10px;font-size:13px}
+.pc{cursor:pointer;padding:12px}.pc h3{font-size:16px;margin-top:4px}
+.pimgw{position:relative}.pw img{transition:transform .35s}.pc:hover .pw img{transform:scale(1.06)}
+.ov{position:absolute;top:8px;z-index:2;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:#000c;border:1px solid var(--line);backdrop-filter:blur(4px)}
+.ov.l{left:8px}.ov.r{right:8px}.ov.ok{color:#3ddc84;border-color:#3ddc84}.ov.low{color:#ffb020;border-color:#ffb020}.ov.out{color:var(--red2);border-color:var(--red2)}
