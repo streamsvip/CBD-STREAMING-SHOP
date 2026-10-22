@@ -44,7 +44,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 .steps{counter-reset:s}.steps .card::before{counter-increment:s;content:counter(s);width:30px;height:30px;border-radius:50%;background:var(--red);display:grid;place-items:center;font-weight:800}
 .foot{text-align:center;color:var(--mu);padding:30px 16px 40px;border-top:1px solid var(--line)}
 body{padding-bottom:48px}
-.logo img{width:42px;height:42px;border-radius:50%;object-fit:cover;vertical-align:middle;border:2px solid var(--red);box-shadow:0 0 12px #e1060066}
+.logo img{height:42px;max-width:220px;object-fit:contain;vertical-align:middle}
 .pi{width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:8px}
 .wm{position:fixed;right:10px;bottom:calc(8px + env(safe-area-inset-bottom,0px));font-size:12px;color:var(--mu);background:#000b;border:1px solid var(--line);border-radius:20px;padding:3px 10px;cursor:pointer;z-index:40}
 .wm:hover{color:#fff;border-color:var(--red)}
@@ -128,11 +128,18 @@ html{scroll-behavior:smooth}
 #boot.off{opacity:0;visibility:hidden;pointer-events:none}
 #boot .bx{display:flex;flex-direction:column;align-items:center;gap:22px;padding:24px;text-align:center}
 #boot .bl{font-family:Orbitron,sans-serif;font-weight:800;letter-spacing:1px;font-size:20px;color:#fff}
-#boot .bl img{display:block;width:76px;height:76px;border-radius:50%;object-fit:cover;border:2px solid var(--red);box-shadow:0 0 26px #e1060088}
-#boot .sp{width:56px;height:56px;border-radius:50%;border:3px solid #3a1114;border-top-color:var(--red2);box-shadow:0 0 24px #e1060044;animation:spin .85s linear infinite}
+#boot .bl img{display:block;width:92px;height:92px;border-radius:50%;object-fit:cover;border:2px solid var(--red);box-shadow:0 0 26px #e1060088;animation:pulse 1.8s ease-in-out infinite}
 #boot p{margin:0;color:var(--mu);font-size:14px;letter-spacing:.5px}
 #boot .bb{width:170px;height:3px;border-radius:3px;background:#2a1517;overflow:hidden}
 #boot .bb i{display:block;width:40%;height:100%;background:linear-gradient(90deg,transparent,var(--red2),transparent);animation:bar 1.2s ease-in-out infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes bar{from{transform:translateX(-100%)}to{transform:translateX(260%)}}
-@media(prefers-reduced-motion:reduce){#boot .sp{animation:spin 1.6s linear infinite!important}#boot{transition:none!important}}
+@media(prefers-reduced-motion:reduce){#boot{transition:none!important}}
+@keyframes pulse{0%,100%{box-shadow:0 0 18px #e1060055;transform:scale(1)}50%{box-shadow:0 0 42px #e10600bb;transform:scale(1.04)}}
+.bnr{max-width:1000px;margin:0 auto 22px;border-radius:16px;overflow:hidden;border:1px solid var(--red);background:#0e0708;box-shadow:0 0 34px #e1060044}
+.bnr img{display:block;width:100%;height:auto}
+.bwrap{padding-bottom:0}.bwrap+.hero{padding-top:30px}
+.st{text-align:center;font-size:21px;margin-bottom:18px}
+.st::after{content:"";display:block;width:52px;height:3px;border-radius:3px;background:var(--red);margin:9px auto 0;box-shadow:0 0 12px #e1060099}
+.alogo{display:block;width:96px;height:96px;border-radius:50%;object-fit:cover;margin:0 auto;border:2px solid var(--red);box-shadow:0 0 30px #e1060066}
+.flogo{display:block;width:60px;height:60px;border-radius:50%;object-fit:cover;margin:0 auto 12px;border:2px solid var(--red);box-shadow:0 0 18px #e1060055}
