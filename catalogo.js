@@ -20,7 +20,7 @@ const saveCli=(id,cn,cw)=>update(root,{['orders/'+id+'/cname']:cn,['orders/'+id+
 const recharge=(amount,rf)=>set(R('recharges/'+S.pm+'_'+rf),{uid:S.me.uid,email:S.me.email,amount,method:S.pm,ref:rf,status:'pend',createdAt:serverTimestamp()})
   .catch(e=>{throw denied(e)?'Ese número de operación ya fue registrado o los datos no son válidos':e});
 const HELLO=()=>`<div class="hello"><div><small class="mu">Bienvenido de vuelta</small><h2>${esc(who())}</h2></div><div class="kpis"><div><b>${usd(S.bal)}</b><small>Saldo · ${sol(S.bal)}</small></div><div><b>${S.orders.length}</b><small>Compras</small></div><div><b>${S.prods.length}</b><small>Productos</small></div></div><button data-a="rech">Recargar saldo</button></div>`;
-const BANNER='<div class="bnr"><img src="img/banner.png" alt="CBD STREAMING SHOP" onerror="this.parentNode.remove()"></div>';
+const BANNER='<div class="bnr"><img src="img/banner.jpeg" data-f="img/banner.png" alt="CBD STREAMING SHOP" onerror="this.onerror=function(){this.parentNode.remove()};this.src=this.dataset.f"></div>';
 P.views={catalog:()=>BANNER+HELLO()+catBar()+`<div id="lst">${cards(flt())}</div>`,mine:()=>`<div class="sec"><h3>Mis compras (${S.orders.length})</h3>${srch('Buscar por correo o nombre del cliente…')}<div id="lst">${ordList()}</div></div>`,rec:()=>`<div class="sec"><h3>Mis recargas</h3>${S.rech.length?S.rech.map(x=>recRow(x,`<span class="tag ${x.status}">${ST[x.status]}</span>`)).join(''):'<p class="mu">Sin recargas.</p>'}</div>`};
 P.lst={catalog:()=>cards(flt()),mine:ordList};
 P.tabs=()=>[['catalog','Catálogo'],['mine','Mis compras'],['rec','Mis recargas']];
