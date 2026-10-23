@@ -366,3 +366,10 @@ select{cursor:pointer;color-scheme:dark}
 @keyframes btpulse{50%{opacity:.45;transform:scale(1.06)}}
 @keyframes btbar{from{transform:translateX(-110%)}to{transform:translateX(280%)}}
 @media(max-width:560px){.bt-ring{width:112px;height:112px}.bt-ring img{width:92px;height:92px}}
+
+/* Respaldo: aunque quede un HTML viejo con <p class="ld">Cargando…</p>, se muestra igual de elegante */
+.ld{position:fixed;inset:0;z-index:90;margin:0;padding:0;display:grid;place-content:center;font-size:0;color:transparent;background:radial-gradient(circle at 50% 38%,#2a0a4a 0,#0a0510 48%,#050308 80%)}
+.ld::before{content:"";width:106px;height:106px;border-radius:50%;background:url(img/cdb.jpeg) center/cover no-repeat,#0b0613;box-shadow:0 0 28px #7c3aed88}
+.ld::after{content:"";position:absolute;left:50%;top:50%;width:128px;height:128px;margin:-64px 0 0 -64px;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 22%,#7c3aed 62%,#e10600 100%);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px));mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px));animation:btspin 1.1s linear infinite}
+html.hw .ld{background:radial-gradient(circle at 50% 38%,#3b0f66 0,#0a0510 48%,#050308 80%)}
+html.hw .ld::after{background:conic-gradient(from 0deg,transparent 0 22%,#7c3aed 55%,#ff7518 100%)}
