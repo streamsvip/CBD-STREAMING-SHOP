@@ -1,4 +1,4 @@
-import * as K from './core.js';
+import * as K from './core.js?v=20261025';
 const {S,A,I,P,H,$,esc,usd,sol,money,fd,ms,period,wa9,PAY,toast,modal,closeM,root,R,denied,fetchSec,set,update,push,increment,serverTimestamp,shellPaint,start,who,srch,pimg,accMsg,two,cancel,flt,cards,catBar,ordList,recRow,ST,ordM,ord,prd,val,openWa,copy,userIssue,MIN,banner,empty}=K;
 
 /* ---- cliente ---- */
