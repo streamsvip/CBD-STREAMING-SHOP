@@ -97,7 +97,7 @@ function userIssue(u){
 /* ===== Vistas ===== */
 let shell=null;
 const ST={pend:'Pendiente',ok:'Aprobada',no:'Rechazada'};
-const LOGO=`<span class="logo"><img src="img/logo.jpeg" alt="CBD STREAMING SHOP" onerror="this.parentNode.innerHTML='<b>CBD STREAMING</b> <span>SHOP</span>'"></span>`;
+const LOGO=`<span class="logo"><img src="img/logo.png" alt="CBD STREAMING SHOP" onerror="this.parentNode.innerHTML='<b>CBD STREAMING</b> <span>SHOP</span>'"></span>`;
 const BURG='<button class="burger" data-a="tg" aria-label="Menú"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg></button>';
 const who=()=>S.adm?'Administrador':uname({name:S.name,email:S.me?.email});
 const stk=p=>(S.free[p.id]||[]).length;
