@@ -110,15 +110,16 @@ function userIssue(u){
 /* ===== Vistas ===== */
 let shell=null;
 const ST={pend:'Pendiente',ok:'Aprobada',no:'Rechazada'};
-/* Logo: usa img/cdb.jpeg (la imagen principal de la tienda) junto al nombre */
-const LOGO=`<span class="logo"><img src="img/cdb.jpeg" alt="" onerror="this.remove()"><span><b>CBD</b> STREAMING SHOP</span></span>`;
+/* Logo ancho: img/logo.png (si no existe prueba logo.jpeg y por último el texto) */
+const LOGO=`<span class="logo"><img src="img/logo.png" alt="CBD STREAMING SHOP" onerror="if(!this.dataset.t){this.dataset.t=1;this.src='img/logo.jpeg'}else{this.parentNode.innerHTML='<b>CBD STREAMING</b> <span>SHOP</span>'}"></span>`;
 const BURG='<button class="burger" data-a="tg" aria-label="Menú"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg></button>';
-/* Banner: prueba varios nombres de archivo dentro de img/ y se quita solo si ninguno existe. Tamaño controlado por CSS (.bnr) */
-const BN=['banner1.jpeg','banner1.png','banner1.jpg','banner.jpeg','banner.png','banner.jpg'];
-const banner=()=>{
-  if(window.__bn==='-')return '';
-  const l=window.__bn?[window.__bn]:BN;
-  return `<div class="bnr"><img src="img/${l[0]}" data-q="${l.slice(1).join(',')}" alt="CBD STREAMING SHOP" decoding="async" onload="window.__bn=this.src.split('/').pop()" onerror="var q=(this.dataset.q||'').split(',').filter(Boolean);if(q.length){this.dataset.q=q.slice(1).join(',');this.src='img/'+q[0]}else{this.onerror=null;window.__bn='-';this.parentNode.remove()}"></div>`;
+/* Banner a tamaño completo: catálogo = img/banner.jpeg, inicio = img/banner1.jpeg (prueba también .png y .jpg; se quita solo si no existe ninguno) */
+const BN=['banner.jpeg','banner.png','banner.jpg','banner1.jpeg','banner1.png','banner1.jpg'];
+const banner=(k='banner')=>{
+  const c=(window.__bn??={});
+  if(c[k]==='-')return '';
+  const l=c[k]?[c[k]]:[...BN.filter(x=>x.startsWith(k+'.')),...BN.filter(x=>!x.startsWith(k+'.'))];
+  return `<div class="bnr"><img src="img/${l[0]}" data-q="${l.slice(1).join(',')}" alt="CBD STREAMING SHOP" decoding="async" onload="(window.__bn=window.__bn||{})['${k}']=this.src.split('/').pop()" onerror="var q=(this.dataset.q||'').split(',').filter(Boolean);if(q.length){this.dataset.q=q.slice(1).join(',');this.src='img/'+q[0]}else{this.onerror=null;(window.__bn=window.__bn||{})['${k}']='-';this.parentNode.remove()}"></div>`;
 };
 const empty=t=>`<div class="empty"><i></i><p>${t}</p></div>`;
 const who=()=>S.adm?'Administrador':uname({name:S.name,email:S.me?.email});
