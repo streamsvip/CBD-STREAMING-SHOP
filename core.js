@@ -25,7 +25,7 @@ const parseAcc=a=>{
   let p=String(a||'').split('|').map(x=>x.trim());
   if(p.length>5)p=[...p.slice(0,4),p.slice(4).join(' | ')];
   return p.length<2?[['Cuenta',a||'(cargando…)']]:['Correo','Contraseña','Perfil','PIN','Nota'].map((l,i)=>[l,p[i]]).filter(x=>x[1])};
-const PAY={yape:{n:'Yape',rows:[['Número','965730677'],['Nombre','Cristhian Eddy C. A.']],qr:'img/yaqr.jpeg',note:'Paga el equivalente en soles.'},bin:{n:'Binance Pay',rows:[['ID de usuario','1250169311'],['Nombre','CRB TECH SHP']],qr:'img/binqr.jpeg',note:'Paga el monto en dólares (USDT).'}};
+const PAY={yape:{n:'Yape',rows:[['Número','965730677'],['Nombre','DIGITAL STORE']],qr:'img/yaqr.jpeg',note:'Paga el equivalente en soles.'},bin:{n:'Binance Pay',rows:[['ID de usuario','1250169311'],['Nombre','CRB TECH SHP']],qr:'img/binqr.jpeg',note:'Paga el monto en dólares (USDT).'}};
 function toast(t,d=2800){const e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',d)}
 const modal=h=>{$('mbox').innerHTML=h;$('modal').classList.add('on')};
 const closeM=()=>$('modal').classList.remove('on');
@@ -44,17 +44,20 @@ const app=initializeApp({
 });
 const auth=getAuth(app),db=getDatabase(app),root=ref(db),R=p=>ref(db,p);
 let subs=[];
-/* ---- pantalla de carga: se oculta cuando sesión, datos, fuentes e imágenes visibles ya están listos ---- */
-const pend={pub:0,priv:0};let locked=0,hid=0,t0=performance.now();
+/* ---- pantalla de carga: solo aparece si la carga tarda (más de 250 ms) o al entrar/salir de sesión.
+        Si todo está listo antes, nunca se ve. Una vez visible, se queda un mínimo para no parpadear ---- */
+const pend={pub:0,priv:0},SHOW_AFTER=300,MIN_SHOWN=350;let locked=0,hid=0,shownAt=$('boot')?.classList.contains('now')?0:SHOW_AFTER;
 const once=k=>{let d=0;pend[k]++;return()=>{if(!d){d=1;pend[k]=Math.max(0,pend[k]-1);fin()}}};
 const fin=()=>{if(S.ready&&!locked&&!pend.pub&&!pend.priv)hideLoad()};
-function showLoad(m){locked=1;hid=0;t0=performance.now();const b=$('boot');if(!b)return;if($('bm'))$('bm').textContent=m||'Cargando…';b.classList.remove('off')}
-const hideNow=()=>{locked=0;hid=1;$('boot')?.classList.add('off')};
+function showLoad(m){locked=1;hid=0;shownAt=performance.now();const b=$('boot');if(!b)return;if($('bm'))$('bm').textContent=m||'Cargando…';b.classList.remove('off');b.classList.add('now');clearTimeout(showLoad.t);showLoad.t=setTimeout(hideNow,12000)}
+const hideNow=()=>{locked=0;hid=1;clearTimeout(showLoad.t);$('boot')?.classList.add('off')};
 function hideLoad(){
   if(hid)return;hid=1;
   const imgs=[...document.images].filter(i=>!i.closest('#boot')&&!i.complete&&i.getBoundingClientRect().top<innerHeight).map(i=>new Promise(r=>{i.addEventListener('load',r,{once:true});i.addEventListener('error',r,{once:true})}));
-  Promise.race([Promise.all([document.fonts?document.fonts.ready:0,...imgs]),new Promise(r=>setTimeout(r,2500))]).then(()=>{
-    setTimeout(()=>requestAnimationFrame(()=>requestAnimationFrame(()=>$('boot')?.classList.add('off'))),Math.max(0,700-(performance.now()-t0)));
+  Promise.race([Promise.all([document.fonts?document.fonts.ready:0,...imgs]),new Promise(r=>setTimeout(r,1500))]).then(()=>{
+    if(locked)return;
+    const now=performance.now(),wait=now>=shownAt?Math.max(0,shownAt+MIN_SHOWN-now):0;
+    setTimeout(()=>requestAnimationFrame(()=>{if(!locked)$('boot')?.classList.add('off')}),wait);
   });
 }
 const on=(q,f)=>{const d=once('priv');subs.push(onValue(q,s=>{f(s);d()},e=>{console.warn('RTDB:',e.code||e.message);if(S.me)toast('Base de datos: sin permiso. Revisa que las reglas estén publicadas');d()}))};
@@ -149,18 +152,24 @@ const P={views:{},lst:{},tabs:()=>[]},H={paint:()=>{}};
 const paint=f=>H.paint(f);
 function shellPaint(force){
   const a=$('app');if(!S.ready||!S.me)return;
-  ['bal1','bal2'].forEach(i=>{const e=$(i);if(e)e.innerHTML='Saldo: '+money(S.bal)});
+  const bal=()=>['bal1','bal2'].forEach(i=>{const e=$(i),h='Saldo: '+money(S.bal);if(e&&e.__h!==h){e.__h=h;e.innerHTML=h}});
+  bal();
   const f=document.activeElement;
   if(!force&&f&&f.closest('#view')&&/INPUT|TEXTAREA|SELECT/.test(f.tagName))return;
+  if(!force&&document.querySelector('#view .irow.dirty'))return;
   if(shell!==S.me.uid||!$('view')){shell=S.me.uid;a.innerHTML=shellV()}
+  /* solo se toca el DOM si el contenido cambió: evita parpadeos, clics perdidos y saltos de scroll */
+  const put=(e,h)=>{if(e&&e.__h!==h){e.__h=h;e.innerHTML=h}};
   const h=P.tabs().map(t=>`<button class="${S.tab===t[0]?'':'ghost'}" data-a="tab" data-t="${t[0]}">${t[1]}</button>`).join('');
-  $('nav').innerHTML=h;$('dn').innerHTML=h;
-  document.querySelectorAll('[data-w]').forEach(e=>e.textContent=who());
-  document.querySelectorAll('[data-wi]').forEach(e=>e.textContent=who()[0].toUpperCase());
-  ['bal1','bal2'].forEach(i=>{const e=$(i);if(e)e.innerHTML='Saldo: '+money(S.bal)});
-  const v=$('view'),k=S.tab+'|'+S.me.uid;
-  v.innerHTML=(P.views[S.tab]||P.views.catalog)();
-  if(paint.k!==k){paint.k=k;v.classList.remove('in');void v.offsetWidth;v.classList.add('in');scrollTo(0,0)}
+  put($('nav'),h);put($('dn'),h);
+  const w=who();
+  document.querySelectorAll('[data-w]').forEach(e=>{if(e.textContent!==w)e.textContent=w});
+  document.querySelectorAll('[data-wi]').forEach(e=>{const t=w[0].toUpperCase();if(e.textContent!==t)e.textContent=t});
+  bal();
+  const v=$('view'),k=S.tab+'|'+S.me.uid,nk=paint.k!==k,y=scrollY;
+  put(v,(P.views[S.tab]||P.views.catalog)());
+  if(nk){paint.k=k;v.classList.remove('in');void v.offsetWidth;v.classList.add('in');scrollTo({top:0,behavior:'instant'})}
+  else if(scrollY!==y)scrollTo({top:y,behavior:'instant'});
 }
 /* ===== Eventos y arranque ===== */
 const ord=id=>S.orders.find(o=>o.id===id),prd=id=>S.prods.find(p=>p.id===id);
@@ -178,7 +187,7 @@ Object.assign(A,{
   copy:d=>copy(d.t),
 });
 Object.assign(I,{q:v=>{S.q=v;const l=P.lst[S.tab];if(l)$('lst').innerHTML=l()},sort:v=>{S.sort=v;const l=P.lst[S.tab];if(l)$('lst').innerHTML=l()}});
-const go=p=>location.replace('./'+p);
+const go=p=>{try{sessionStorage.setItem('cbdnav','1')}catch{}location.replace('./'+p)};
 /* Favicon redondo generado desde img/cdb.jpeg (la imagen principal, que sí carga) */
 function circleIcon(){
   const im=new Image();
@@ -206,7 +215,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.dataset.ent
 try{localStorage.removeItem('ds_db');sessionStorage.removeItem('ds_me')}catch{}
 addEventListener('unhandledrejection',e=>toast(err(e.reason)));
 pub(()=>paint());
-setTimeout(()=>{if(!locked)hideLoad()},10000);
+setTimeout(()=>{if(!locked)hideLoad()},6000);
 let authTk=0;
 onAuthStateChanged(auth,async u=>{
   const tk=++authTk;
