@@ -2,7 +2,7 @@ import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase
 import {getAuth,onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,sendPasswordResetEmail} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {getDatabase,ref,onValue,get,set,update,push,query,orderByChild,equalTo,serverTimestamp,increment} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 /* ===== Núcleo ===== */
-const S={me:null,adm:false,ready:false,bal:0,name:'',prods:[],free:{},orders:[],rech:[],users:[],sec:{},wa:'',tab:'catalog',view:'home',mode:'login',pm:'yape',q:'',cat:''};
+const S={me:null,adm:false,ready:false,bal:0,name:'',prods:[],free:{},orders:[],rech:[],users:[],sec:{},wa:'',tab:'catalog',view:'home',mode:'login',pm:'yape',q:'',cat:'',sort:''};
 const A={},I={};
 const RATE=3.4,MIN=1;
 const $=id=>document.getElementById(id);
@@ -44,15 +44,28 @@ const app=initializeApp({
 });
 const auth=getAuth(app),db=getDatabase(app),root=ref(db),R=p=>ref(db,p);
 let subs=[];
-const on=(q,f)=>subs.push(onValue(q,f,e=>{console.warn('RTDB:',e.code||e.message);if(S.me)toast('Base de datos: sin permiso. Revisa que las reglas estén publicadas')}));
+/* ---- pantalla de carga: se oculta cuando sesión, datos, fuentes e imágenes visibles ya están listos ---- */
+const pend={pub:0,priv:0};let locked=0,hid=0,t0=performance.now();
+const once=k=>{let d=0;pend[k]++;return()=>{if(!d){d=1;pend[k]=Math.max(0,pend[k]-1);fin()}}};
+const fin=()=>{if(S.ready&&!locked&&!pend.pub&&!pend.priv)hideLoad()};
+function showLoad(m){locked=1;hid=0;t0=performance.now();const b=$('boot');if(!b)return;if($('bm'))$('bm').textContent=m||'Cargando…';b.classList.remove('off')}
+const hideNow=()=>{locked=0;hid=1;$('boot')?.classList.add('off')};
+function hideLoad(){
+  if(hid)return;hid=1;
+  const imgs=[...document.images].filter(i=>!i.closest('#boot')&&!i.complete&&i.getBoundingClientRect().top<innerHeight).map(i=>new Promise(r=>{i.addEventListener('load',r,{once:true});i.addEventListener('error',r,{once:true})}));
+  Promise.race([Promise.all([document.fonts?document.fonts.ready:0,...imgs]),new Promise(r=>setTimeout(r,2500))]).then(()=>{
+    setTimeout(()=>requestAnimationFrame(()=>requestAnimationFrame(()=>$('boot')?.classList.add('off'))),Math.max(0,700-(performance.now()-t0)));
+  });
+}
+const on=(q,f)=>{const d=once('priv');subs.push(onValue(q,s=>{f(s);d()},e=>{console.warn('RTDB:',e.code||e.message);if(S.me)toast('Base de datos: sin permiso. Revisa que las reglas estén publicadas');d()}))};
 const arr=s=>{const r=[];s.forEach(c=>{r.push({id:c.key,...c.val()})});return r};
 const by=a=>a.sort((x,y)=>ms(y.createdAt)-ms(x.createdAt));
 const denied=e=>/permission/i.test(e?.code||e?.message||'');
 function pub(r){
-  onValue(R('products'),s=>{S.prods=arr(s);r()},()=>{});
-  onValue(R('settings/wa'),s=>{S.wa=s.val()||'';r()},()=>{});
+  const d1=once('pub');onValue(R('products'),s=>{S.prods=arr(s);r();d1()},()=>d1());
+  const d2=once('pub');onValue(R('settings/wa'),s=>{S.wa=s.val()||'';r();d2()},()=>d2());
 }
-const unlisten=()=>{subs.splice(0).forEach(f=>f())};
+const unlisten=()=>{subs.splice(0).forEach(f=>f());pend.priv=0};
 function priv(r){
   const u=S.me.uid,c=n=>S.adm?R(n):query(R(n),orderByChild('uid'),equalTo(u));
   on(R('users/'+u),s=>{const d=s.val()||{};S.ud=d;S.bal=Number(d.balance)||0;S.name=d.name||'';r()});
@@ -97,8 +110,17 @@ function userIssue(u){
 /* ===== Vistas ===== */
 let shell=null;
 const ST={pend:'Pendiente',ok:'Aprobada',no:'Rechazada'};
-const LOGO=`<span class="logo"><img src="img/logo.png" alt="CBD STREAMING SHOP" onerror="this.parentNode.innerHTML='<b>CBD STREAMING</b> <span>SHOP</span>'"></span>`;
+/* Logo: usa img/cdb.jpeg (la imagen principal de la tienda) junto al nombre */
+const LOGO=`<span class="logo"><img src="img/cdb.jpeg" alt="" onerror="this.remove()"><span><b>CBD</b> STREAMING SHOP</span></span>`;
 const BURG='<button class="burger" data-a="tg" aria-label="Menú"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg></button>';
+/* Banner: prueba varios nombres de archivo dentro de img/ y se quita solo si ninguno existe. Tamaño controlado por CSS (.bnr) */
+const BN=['banner1.jpeg','banner1.png','banner1.jpg','banner.jpeg','banner.png','banner.jpg'];
+const banner=()=>{
+  if(window.__bn==='-')return '';
+  const l=window.__bn?[window.__bn]:BN;
+  return `<div class="bnr"><img src="img/${l[0]}" data-q="${l.slice(1).join(',')}" alt="CBD STREAMING SHOP" decoding="async" onload="window.__bn=this.src.split('/').pop()" onerror="var q=(this.dataset.q||'').split(',').filter(Boolean);if(q.length){this.dataset.q=q.slice(1).join(',');this.src='img/'+q[0]}else{this.onerror=null;window.__bn='-';this.parentNode.remove()}"></div>`;
+};
+const empty=t=>`<div class="empty"><i></i><p>${t}</p></div>`;
 const who=()=>S.adm?'Administrador':uname({name:S.name,email:S.me?.email});
 const stk=p=>(S.free[p.id]||[]).length;
 const em=o=>{const x=S.sec[o.sid]||'';return isFree(x)?x.slice(2).trim().slice(0,60):x.split('|')[0]};
@@ -111,16 +133,17 @@ const two=(a,b)=>`<div class="two">${a}${b}</div>`;
 const cancel='<button class="ghost" data-a="closeM">Cancelar</button>';
 const eye=id=>`<button class="ghost eye" data-a="prod" data-id="${id}" title="Ver descripción completa" aria-label="Ver descripción completa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></button>`;
 /* ---- catálogo ---- */
-const flt=()=>S.prods.filter(p=>(!S.cat||p.cat===S.cat)&&has([p.name,p.desc,p.cat],S.q));
-const cards=l=>l.length?`<div class="grid">${l.map(p=>`<div class="card pc" style="cursor:pointer" data-a="prod" data-id="${p.id}">${pimg(p)}${p.cat?`<span class="tag">${esc(p.cat)}</span>`:''}<h3>${esc(p.name)}</h3><small>${esc(p.desc)}</small><div class="p">${money(p.price)}</div><div class="meta"><span>⏱ ${p.days} días</span><span>${p.ren?'Renovable':'No renovable'}</span><span>Stock ${stk(p)}</span></div>${S.adm?`<div class="bar"><button class="ghost" data-a="editp" data-id="${p.id}">Editar</button><button class="no" data-a="delp" data-id="${p.id}">Eliminar</button>${eye(p.id)}</div>`:`<div class="bar"><button ${stk(p)?'':'disabled'} data-a="buy" data-id="${p.id}">${stk(p)?'Comprar':'Agotado'}</button>${eye(p.id)}</div>`}</div>`).join('')}</div>`:'<p class="mu">No hay productos para mostrar.</p>';
-const catBar=()=>`<div class="cbar">${srch('Buscar producto…')}<div class="chips2"><button class="${S.cat?'ghost':''}" data-a="cat" data-v="">Todas</button>${[...new Set(S.prods.map(p=>p.cat).filter(Boolean))].map(c=>`<button class="${S.cat===c?'':'ghost'}" data-a="cat" data-v="${esc(c)}">${esc(c)}</button>`).join('')}</div></div>`;
+const flt=()=>{const l=S.prods.filter(p=>(!S.cat||p.cat===S.cat)&&has([p.name,p.desc,p.cat],S.q));const f={pa:(a,b)=>a.price-b.price,pd:(a,b)=>b.price-a.price,n:(a,b)=>String(a.name).localeCompare(String(b.name))}[S.sort];return f?[...l].sort(f):l};
+const cards=(l,nc)=>l.length?`${nc?'':`<p class="mu rcount">${l.length} producto${l.length===1?'':'s'}</p>`}<div class="grid">${l.map(p=>{const n=S.me?stk(p):-1;return `<div class="card pc" data-a="prod" data-id="${p.id}"><div class="pimgw">${pimg(p)}${p.cat?`<span class="ov l">${esc(p.cat)}</span>`:''}${n<0?'':`<span class="ov r ${n?(n<=3?'low':'ok'):'out'}">${n?(n<=3?'Pocas unidades':'Disponible'):'Agotado'}</span>`}</div><h3>${esc(p.name)}</h3><small>${esc(p.desc)}</small><div class="meta"><span>⏱ ${p.days} días</span><span>${p.ren?'Renovable':'No renovable'}</span>${n<0?'':`<span>Stock ${n}</span>`}</div><div class="p">${money(p.price)}</div>${S.adm?`<div class="bar"><button class="ghost" data-a="editp" data-id="${p.id}">Editar</button><button class="no" data-a="delp" data-id="${p.id}">Eliminar</button>${eye(p.id)}</div>`:S.me?`<div class="bar"><button ${n?'':'disabled'} data-a="buy" data-id="${p.id}">${n?'Comprar':'Agotado'}</button>${eye(p.id)}</div>`:`<div class="bar"><button data-a="go" data-m="login">Comprar</button>${eye(p.id)}</div>`}</div>`}).join('')}</div>`:empty('No hay productos para mostrar.');
+const SEARCH='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>';
+const catBar=()=>{const cs=[...new Set(S.prods.map(p=>p.cat).filter(Boolean))],ct=k=>S.prods.filter(p=>p.cat===k).length;return `<div class="cbar"><div class="tools"><div class="sbox"><span class="ic">${SEARCH}</span><input class="srch" data-i="q" placeholder="Buscar producto…" value="${esc(S.q)}"></div><select class="sort" data-i="sort" aria-label="Ordenar"><option value="">Ordenar: recomendado</option><option value="pa" ${S.sort==='pa'?'selected':''}>Precio: menor a mayor</option><option value="pd" ${S.sort==='pd'?'selected':''}>Precio: mayor a menor</option><option value="n" ${S.sort==='n'?'selected':''}>Nombre: A–Z</option></select></div><div class="chips2"><button class="${S.cat?'ghost':''}" data-a="cat" data-v="">Todas <span class="cnt">${S.prods.length}</span></button>${cs.map(c=>`<button class="${S.cat===c?'':'ghost'}" data-a="cat" data-v="${esc(c)}">${esc(c)} <span class="cnt">${ct(c)}</span></button>`).join('')}</div></div>`};
 const catOpts=()=>[...new Set(S.prods.map(p=>p.cat).filter(Boolean))].map(c=>`<option value="${esc(c)}">`).join('');
 /* ---- compras / recargas ---- */
-const ordList=()=>{const o=S.orders.filter(x=>has([x.pname,x.cname,x.cwa,em(x)],S.q));return o.length?o.map(x=>`<div class="ord"><span class="av ${x.cname?'':'na'}">${x.cname?esc(x.cname.trim()[0].toUpperCase()):'?'}</span><div class="oi"><div class="cn">${x.cname?esc(x.cname):'<i class="mu">Sin nombre de cliente</i>'}</div><div>${esc(x.pname)} · <small class="mu">${money(x.price)}</small></div><small class="mu">${esc(em(x))}${x.cwa?' · '+esc(x.cwa):''}<br>${period(x)}</small> ${vig(x)}</div><span class="oa"><button class="ghost" data-a="show" data-id="${x.id}">Ver cuenta</button><button data-a="cli" data-id="${x.id}">${x.cname?'Editar cliente':'Agregar cliente'}</button></span></div>`).join(''):'<p class="mu">Todavía no compraste nada.</p>'};
-const recRow=(r,btn)=>`<div class="row"><span>${esc(r.email)}<br><small class="mu">${PAY[r.method]?.n} · ${money(r.amount)} · op. ${esc(r.ref)} · ${fd(ms(r.createdAt))}</small></span>${btn}</div>`;
-const prodM=p=>`${pimg(p,'big')}<h2 style="font-size:20px;margin:14px 0 6px">${esc(p.name)}</h2>${p.cat?`<span class="tag">${esc(p.cat)}</span>`:''}<div class="p big">${money(p.price)}</div><div class="meta" style="margin:8px 0"><span>⏱ ${p.days} días</span><span>${p.ren?'Renovable':'No renovable'}</span><span>Stock ${stk(p)}</span></div><p class="desc">${esc(p.desc)||'Sin descripción.'}</p>${two(S.me&&!S.adm?`<button ${stk(p)?'':'disabled'} data-a="buy" data-id="${p.id}">${stk(p)?'Comprar':'Agotado'}</button>`:(S.adm?`<button class="no" data-a="delp" data-id="${p.id}">Eliminar producto</button>`:'<button data-a="goauth">Ingresar para comprar</button>'),'<button class="ghost" data-a="closeM">Cerrar</button>')}`;
-const ordM=o=>{const f=parseAcc(S.sec[o.sid]);return `<div style="text-align:center"><div class="ck">✓</div><h3>${S.adm?'Datos entregados':'¡Compra exitosa!'}</h3></div><div class="dprod dp2">${pimg({name:o.pname,img:o.img},'sm2')}<div><b>${esc(o.pname)}</b><br><small class="mu">${period(o)} · ${o.ren?'Renovable':'No renovable'}</small><br>${vig(o)}</div></div>${f.map(x=>`<div class="fld"><div><small class="mu">${x[0]}</small><div class="fv">${esc(x[1])}</div></div>${S.adm?'':`<button class="ghost" data-a="copy" data-t="${esc(x[1])}">Copiar</button>`}</div>`).join('')}<p class="mu" style="font-size:12px;margin:12px 0">No cambies la contraseña ni el PIN y usa solo tu perfil asignado. Si tienes algún problema, escríbenos por soporte.</p>${S.adm?'':`<button class="ghost" style="width:100%;margin-bottom:8px" data-a="copyall" data-id="${o.id}">Copiar todo</button><div class="wbox"><label>WhatsApp del cliente (con código de país)</label><input id="wn" inputmode="tel" value="${esc(o.cwa||'')}" placeholder="51999999999"><button style="width:100%" data-a="sendcli" data-id="${o.id}">Enviar por WhatsApp</button></div>`}<button style="width:100%;margin-top:8px" data-a="closeM">Entendido</button>`};
-const shellV=()=>`<div class="top">${LOGO}<div class="r">${S.adm?'':'<span class="bal" id="bal1"></span><button class="rc" data-a="rech">Recargar</button>'}<span class="usr"><span class="av" data-wi></span><span class="un" data-w></span></span><button class="ghost out" data-a="logout">Salir</button>${BURG}</div></div><div id="dw" class="dw"><div class="dov" data-a="tg"></div><aside class="dp"><div class="usr big"><span class="av" data-wi></span><span><b data-w></b><br><small class="mu">${esc(S.me.email)}</small></span></div>${S.adm?'':'<p class="bal" id="bal2" style="text-align:center;margin:0"></p><button data-a="rech">Recargar saldo</button>'}<div class="dn" id="dn"></div><button class="ghost" data-a="logout">Cerrar sesión</button></aside></div><div class="wrap"><div class="tabs nav" id="nav"></div><div id="view"></div></div>`;
+const ordList=()=>{const o=S.orders.filter(x=>has([x.pname,x.cname,x.cwa,em(x)],S.q));return o.length?o.map(x=>`<div class="ord"><span class="av ${x.cname?'':'na'}">${x.cname?esc(x.cname.trim()[0].toUpperCase()):'?'}</span><div class="oi"><div class="cn">${x.cname?esc(x.cname):'<i class="mu">Sin nombre de cliente</i>'}</div><div>${esc(x.pname)} · <small class="mu">${money(x.price)}</small></div><small class="mu">${esc(em(x))}${x.cwa?' · '+esc(x.cwa):''}<br>${period(x)}</small> ${vig(x)}</div><span class="oa"><button class="ghost" data-a="show" data-id="${x.id}">Ver cuenta</button><button data-a="cli" data-id="${x.id}">${x.cname?'Editar cliente':'Agregar cliente'}</button></span></div>`).join(''):empty('Todavía no compraste nada.')};
+const recRow=(r,btn)=>`<div class="rrow"><div class="ri"><b>${esc(r.email)}</b><small class="mu">${esc(PAY[r.method]?.n||r.method)} · op. ${esc(r.ref)} · ${fd(ms(r.createdAt))}</small></div><div class="rm">${money(r.amount)}</div><div class="rb">${btn}</div></div>`;
+const prodM=p=>`${pimg(p,'big')}<h2 style="font-size:20px;margin:14px 0 6px">${esc(p.name)}</h2>${p.cat?`<span class="tag">${esc(p.cat)}</span>`:''}<div class="p big">${money(p.price)}</div><div class="meta" style="margin:8px 0"><span>⏱ ${p.days} días</span><span>${p.ren?'Renovable':'No renovable'}</span>${S.me?`<span>Stock ${stk(p)}</span>`:''}</div><p class="desc">${esc(p.desc)||'Sin descripción.'}</p>${two(S.me&&!S.adm?`<button ${stk(p)?'':'disabled'} data-a="buy" data-id="${p.id}">${stk(p)?'Comprar':'Agotado'}</button>`:(S.adm?`<button class="no" data-a="delp" data-id="${p.id}">Eliminar producto</button>`:'<button data-a="goauth">Ingresar para comprar</button>'),'<button class="ghost" data-a="closeM">Cerrar</button>')}`;
+const ordM=o=>{const raw=S.sec[o.sid],f=parseAcc(raw);return `<div style="text-align:center"><div class="ck">✓</div><h3>${S.adm?'Datos entregados':'¡Compra exitosa!'}</h3></div><div class="dprod dp2">${pimg({name:o.pname,img:o.img},'sm2')}<div><b>${esc(o.pname)}</b><br><small class="mu">${period(o)} · ${o.ren?'Renovable':'No renovable'}</small><br>${vig(o)}</div></div>${f.map(x=>`<div class="fld"><div><small class="mu">${x[0]}</small><div class="fv">${esc(x[1])}</div></div>${S.adm?'':`<button class="ghost" data-a="copy" data-t="${esc(x[1])}">Copiar</button>`}</div>`).join('')}${isFree(raw)?'':'<p class="mu" style="font-size:12px;margin:12px 0">No cambies la contraseña ni el PIN y usa solo tu perfil asignado. Si tienes algún problema, escríbenos por soporte.</p>'}${S.adm?'':`<button class="ghost" style="width:100%;margin:8px 0" data-a="copyall" data-id="${o.id}">Copiar todo</button><div class="wbox"><label>WhatsApp del cliente (con código de país)</label><input id="wn" inputmode="tel" value="${esc(o.cwa||'')}" placeholder="51999999999"><button style="width:100%" data-a="sendcli" data-id="${o.id}">Enviar por WhatsApp</button></div>`}<button style="width:100%;margin-top:8px" data-a="closeM">Entendido</button>`};
+const shellV=()=>`<div class="top">${LOGO}<div class="r">${S.adm?'':'<span class="bal" id="bal1"></span><button class="rc" data-a="rech">Recargar</button>'}<span class="usr"><span class="av" data-wi></span><span class="un" data-w></span>${S.adm?'<span class="role">Admin</span>':''}</span><button class="ghost out" data-a="logout">Salir</button>${BURG}</div></div><div id="dw" class="dw"><div class="dov" data-a="tg"></div><aside class="dp"><div class="usr big"><span class="av" data-wi></span><span><b data-w></b><br><small class="mu">${esc(S.me.email)}</small></span></div>${S.adm?'':'<p class="bal" id="bal2" style="text-align:center;margin:0"></p><button data-a="rech">Recargar saldo</button>'}<div class="dn" id="dn"></div><button class="ghost" data-a="logout">Cerrar sesión</button></aside></div><div class="wrap"><div class="tabs nav" id="nav"></div><div id="view"></div></div>`;
 const P={views:{},lst:{},tabs:()=>[]},H={paint:()=>{}};
 const paint=f=>H.paint(f);
 function shellPaint(force){
@@ -145,7 +168,7 @@ const copy=t=>navigator.clipboard.writeText(t).then(()=>toast('Copiado'),()=>toa
 Object.assign(A,{
   closeM,
   tg:()=>$('dw')?.classList.toggle('on'),
-  logout:()=>logout(),
+  logout:()=>{showLoad('Cerrando sesión…');return logout().catch(x=>{hideNow();throw x})},
   tab:d=>{S.tab=d.t;S.q='';S.cat='';$('dw')?.classList.remove('on');paint(true)},
   cat:d=>{S.cat=d.v;paint(true)},
   sup:()=>openWa(S.wa,'Hola, necesito soporte.'+(S.me?' Mi correo: '+S.me.email:'')),
@@ -153,13 +176,24 @@ Object.assign(A,{
   show:async d=>{const o=ord(d.id);await fetchSec([o.sid]);modal(ordM(o))},
   copy:d=>copy(d.t),
 });
-Object.assign(I,{q:v=>{S.q=v;const l=P.lst[S.tab];if(l)$('lst').innerHTML=l()}});
+Object.assign(I,{q:v=>{S.q=v;const l=P.lst[S.tab];if(l)$('lst').innerHTML=l()},sort:v=>{S.sort=v;const l=P.lst[S.tab];if(l)$('lst').innerHTML=l()}});
 const go=p=>location.replace('./'+p);
-/* Pantalla de carga: se muestra al inicio y se oculta cuando la página ya está lista */
-const showLoad=m=>{const b=$('boot');if(!b)return;if(m&&$('bm'))$('bm').textContent=m;b.classList.remove('off','gone')};
-const hideNow=()=>{const b=$('boot');if(!b||b.classList.contains('off'))return;b.classList.add('off');setTimeout(()=>b.classList.add('gone'),450)};
+/* Favicon redondo generado desde img/cdb.jpeg (la imagen principal, que sí carga) */
+function circleIcon(){
+  const im=new Image();
+  im.onload=()=>{try{
+    const s=128,cv=document.createElement('canvas');cv.width=cv.height=s;
+    const x=cv.getContext('2d');x.beginPath();x.arc(s/2,s/2,s/2,0,Math.PI*2);x.clip();
+    const m=Math.min(im.width,im.height);x.drawImage(im,(im.width-m)/2,(im.height-m)/2,m,m,0,0,s,s);
+    document.querySelectorAll('link[rel~="icon"]').forEach(l=>l.remove());
+    const l=document.createElement('link');l.rel='icon';l.type='image/png';l.href=cv.toDataURL('image/png');document.head.appendChild(l);
+  }catch{}};
+  im.src='img/cdb.jpeg';
+}
 function start(page){
 document.body.insertAdjacentHTML('beforeend','<div id="modal"><div class="box" id="mbox"></div></div><div id="toast"></div><a class="fab" href="#" data-a="sup" aria-label="Soporte por WhatsApp"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm5.2 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.5-3.9-4.7-4.1-.1-.2-1.1-1.5-1.1-2.8s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.1.1.3 0 .5l-.4.6c-.1.2-.3.3-.1.6.2.3.7 1.2 1.5 1.9 1 .9 1.9 1.2 2.2 1.3.3.1.4.1.6-.1l.8-1c.2-.2.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.2.1.8-.1 1.4z"/></svg><span>Soporte</span></a>');
+if(page!=='catalogo')document.querySelector('.fab')?.remove();
+circleIcon();
 document.addEventListener('click',async e=>{
   if(e.target.id==='modal')return closeM();
   const b=e.target.closest('[data-a]');if(!b)return;
@@ -171,7 +205,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.dataset.ent
 try{localStorage.removeItem('ds_db');sessionStorage.removeItem('ds_me')}catch{}
 addEventListener('unhandledrejection',e=>toast(err(e.reason)));
 pub(()=>paint());
-setTimeout(hideNow,9000); /* seguridad: nunca dejar la pantalla de carga trabada */
+setTimeout(()=>{if(!locked)hideLoad()},10000);
 let authTk=0;
 onAuthStateChanged(auth,async u=>{
   const tk=++authTk;
@@ -187,7 +221,7 @@ onAuthStateChanged(auth,async u=>{
     if(page!==dest)return go(dest);
     S.pendName='';S.me=u;S.adm=adm;S.tab=adm?'pend':'catalog';priv(()=>paint());
   }
-  S.ready=true;paint(true);hideNow();
+  S.ready=true;paint(true);fin();
 });
 }
-export {isFree,S,A,I,P,H,$,esc,usd,sol,money,ms,fd,period,vig,uname,wa9,parseAcc,PAY,toast,modal,closeM,err,db,root,R,arr,by,denied,fetchSec,set,update,push,get,increment,serverTimestamp,paint,shellPaint,start,LOGO,BURG,who,stk,em,buyer,srch,has,pimg,accMsg,two,cancel,eye,flt,cards,catBar,catOpts,ordList,recRow,ST,prodM,ordM,ord,prd,val,openWa,copy,login,register,userIssue,MIN,auth,showLoad,hideNow,sendPasswordResetEmail}
+export {isFree,S,A,I,P,H,$,esc,usd,sol,money,ms,fd,period,vig,uname,wa9,parseAcc,PAY,toast,modal,closeM,err,db,root,R,arr,by,denied,fetchSec,set,update,push,get,increment,serverTimestamp,paint,shellPaint,start,LOGO,BURG,banner,empty,who,stk,em,buyer,srch,has,pimg,accMsg,two,cancel,eye,flt,cards,catBar,catOpts,ordList,recRow,ST,prodM,ordM,ord,prd,val,openWa,copy,login,register,userIssue,MIN,auth,showLoad,hideNow,sendPasswordResetEmail}
