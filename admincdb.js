@@ -1,5 +1,5 @@
-import * as K from './core.js?v=20261025';
-const {S,A,I,P,H,$,esc,usd,money,ms,period,vig,uname,PAY,toast,modal,closeM,root,R,fetchSec,set,update,push,increment,serverTimestamp,paint,shellPaint,start,stk,em,buyer,srch,has,pimg,two,cancel,flt,cards,catBar,catOpts,recRow,ST,ord,prd,val,userIssue,isFree,empty}=K;
+import * as K from './core.js?v=20261026';
+const {S,A,I,P,H,$,esc,usd,money,ms,period,vig,uname,PAY,toast,modal,closeM,root,R,fetchSec,set,update,push,increment,serverTimestamp,paint,shellPaint,start,stk,em,buyer,srch,has,pimg,two,cancel,flt,cards,catBar,catOpts,recRow,ST,ord,prd,val,userIssue,isFree,empty,ask}=K;
 
 /* ================= Datos del administrador ================= */
 async function decide(id,ok){
@@ -171,7 +171,7 @@ Object.assign(A,{
   },
   editp:d=>modal(editPM(prd(d.id))),
   savep:async d=>{await saveProd(d.id,{name:val('en'),desc:val('ed'),img:val('ei'),days:parseInt(val('edy')),cat:val('ec'),ren:val('er')==='1',price:parseFloat(val('ep'))});closeM();toast('Producto actualizado')},
-  delp:async d=>{if(confirm('¿Eliminar este producto y su stock disponible? Las compras ya realizadas no se borran.')){await delProd(d.id);closeM();toast('Producto eliminado')}},
+  delp:async d=>{const p=prd(d.id),n=(S.free[d.id]||[]).length;if(await ask({icon:'trash',title:'¿Eliminar este producto?',html:'<b>'+esc(p?.name||'')+'</b><br>'+(n?'También se eliminarán sus <b>'+n+' cuenta'+(n===1?'':'s')+' disponible'+(n===1?'':'s')+'</b>. ':'')+'Las compras ya realizadas no se borran.',ok:'Eliminar producto'})){await delProd(d.id);closeM();toast('Producto eliminado')}},
   /* stock */
   adds:d=>modal(addSM(prd(d.id))),
   addst:async d=>{
@@ -205,13 +205,13 @@ Object.assign(A,{
     const ids=S.free[d.id]||[],lines=val('bk').split('\n').map(x=>x.trim()).filter(Boolean).map(normLine),bad=lines.filter(x=>x===null).length;
     if(bad)return toast('Formato inválido en '+bad+' línea(s). Usa correo|contraseña|perfil|pin|nota, o empieza con @@ para un mensaje libre');
     const del=Math.max(0,ids.length-lines.length),add=Math.max(0,lines.length-ids.length);
-    if(del&&!confirm('Se eliminarán '+del+' cuenta(s) que quitaste de la lista. ¿Continuar?'))return;
+    if(del&&!await ask({icon:'trash',title:'¿Eliminar '+del+' cuenta'+(del===1?'':'s')+'?',html:'Quitaste <b>'+del+'</b> línea'+(del===1?'':'s')+' de la lista, así que esas cuentas se eliminarán del inventario.',ok:'Guardar y eliminar'}))return;
     closeM();toast('Guardando…');await bulkSave(d.id,lines);
     toast('Listo: '+Math.min(ids.length,lines.length)+' actualizada(s)'+(add?', '+add+' nueva(s)':'')+(del?', '+del+' eliminada(s)':''));
   },
-  clr:async d=>{const p=prd(d.id),ids=[...(S.free[d.id]||[])];if(ids.length&&confirm('¿Eliminar las '+ids.length+' cuenta(s) disponibles de "'+p.name+'"? Las ya vendidas no se tocan.')){await clearStock(ids);toast(ids.length+' cuenta(s) eliminadas')}},
-  clrall:async()=>{const ids=Object.values(S.free).flat();if(ids.length&&confirm('¿Eliminar TODAS las '+ids.length+' cuentas disponibles de todos los productos? Las ya vendidas no se tocan.')&&confirm('Esta acción no se puede deshacer. ¿Seguro que quieres vaciar todo el inventario?')){await clearStock(ids);toast('Inventario vaciado')}},
-  delst:async d=>{if(confirm('¿Eliminar esta cuenta del stock disponible?')){await delStock(d.id);toast('Cuenta eliminada')}},
+  clr:async d=>{const p=prd(d.id),ids=[...(S.free[d.id]||[])];if(ids.length&&await ask({icon:'trash',title:'¿Vaciar este producto?',html:(ids.length===1?'Se eliminará la <b>única cuenta disponible</b>':'Se eliminarán las <b>'+ids.length+' cuentas disponibles</b>')+' de <b>'+esc(p.name)+'</b>. Las ya vendidas no se tocan.',ok:'Vaciar producto'})){await clearStock(ids);toast(ids.length+' cuenta(s) eliminadas')}},
+  clrall:async()=>{const ids=Object.values(S.free).flat();if(ids.length&&await ask({icon:'trash',title:'Vaciar todo el inventario',html:(ids.length===1?'Se eliminará <b>1 cuenta disponible</b>':'Se eliminarán <b>'+ids.length+' cuentas disponibles</b>')+' de <b>todos los productos</b>. Esta acción no se puede deshacer. Las cuentas ya vendidas no se tocan.',ok:'Vaciar todo',word:'VACIAR'})){await clearStock(ids);toast('Inventario vaciado')}},
+  delst:async d=>{if(await ask({icon:'trash',title:'¿Eliminar esta cuenta?',html:'Se quitará del stock disponible y ya no se podrá entregar.',ok:'Eliminar'})){await delStock(d.id);toast('Cuenta eliminada')}},
   /* entregas ya vendidas */
   edito:async d=>{const o=ord(d.id);await fetchSec([o.sid]);modal(editOM(o))},
   saveo:async d=>{const o=ord(d.id),a=readAcc();await saveAcc(o.sid,a);S.sec[o.sid]=a;closeM();paint(true);toast('Entrega actualizada')},
@@ -224,7 +224,7 @@ Object.assign(A,{
     v=Math.round(v*100)/100;
     if(d.m==='add'&&v<0.1)return toast('El monto mínimo para agregar es $0.10');
     if(d.m==='add'&&v>100000)return toast('Monto demasiado alto');
-    if(z&&!confirm('¿Dejar el saldo de '+u.email+' en $0.00?'))return;
+    if(z&&!await ask({title:'¿Poner el saldo en $0.00?',html:'El saldo de <b>'+esc(u.email)+'</b> pasará de <b>'+usd(u.balance)+'</b> a <b>$0.00</b>. Quedará registrado en el historial de ajustes.',ok:'Poner en $0.00'}))return;
     await setBal(u,d.m,v);closeM();toast(d.m==='add'?'Saldo agregado: +'+usd(v):'Saldo establecido en '+usd(v));
   },
   savewa:async()=>{await saveWa(val('sw').replace(/\D/g,''));toast('Configuración guardada')},
