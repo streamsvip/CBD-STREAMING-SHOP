@@ -187,6 +187,20 @@ Object.assign(A,{
   copy:d=>copy(d.t),
 });
 Object.assign(I,{q:v=>{S.q=v;const l=P.lst[S.tab];if(l)$('lst').innerHTML=l()},sort:v=>{S.sort=v;const l=P.lst[S.tab];if(l)$('lst').innerHTML=l()}});
+/* Diálogo de confirmación con el estilo de la tienda (reemplaza al confirm() blanco del navegador).
+   ask({title,text|html,ok,no,icon:'warn'|'trash',danger,word}) -> Promise<boolean>. 'word' obliga a escribir esa palabra para confirmar. */
+const AI={warn:'<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',trash:'<path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/>'};
+const ask=o=>new Promise(res=>{
+  const e=$('ask'),dg=o.danger!==false;
+  if(!e)return res(confirm(o.title));
+  const off=v=>{e.classList.remove('on');e.onclick=e.oninput=null;document.removeEventListener('keydown',key,true);res(v)};
+  const key=ev=>{if(ev.key==='Escape'){ev.preventDefault();off(false)}else if(ev.key==='Enter'&&ev.target.tagName==='INPUT'){const b=e.querySelector('[data-k="1"]');if(!b.disabled){ev.preventDefault();off(true)}}};
+  e.innerHTML=`<div class="abox${dg?' danger':''}" role="alertdialog" aria-modal="true" aria-labelledby="ask-t"><span class="aic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${AI[o.icon]||AI.warn}</svg></span><h3 id="ask-t">${esc(o.title)}</h3><p>${o.html||esc(o.text||'')}</p>${o.word?`<div class="wd"><small class="mu">Para continuar escribe <b>${esc(o.word)}</b></small><input id="ask-w" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="${esc(o.word)}"></div>`:''}<div class="two"><button class="ghost" data-k="0">${esc(o.no||'Cancelar')}</button><button class="${dg?'dng':''}" data-k="1" ${o.word?'disabled':''}>${esc(o.ok||'Confirmar')}</button></div></div>`;
+  e.onclick=ev=>{const b=ev.target.closest('[data-k]');if(b&&!b.disabled)off(b.dataset.k==='1');else if(ev.target===e)off(false)};
+  if(o.word)e.oninput=ev=>{e.querySelector('[data-k="1"]').disabled=ev.target.value.trim().toUpperCase()!==o.word.toUpperCase()};
+  document.addEventListener('keydown',key,true);
+  e.classList.add('on');(o.word?$('ask-w'):e.querySelector('[data-k="0"]')).focus();
+});
 const go=p=>{try{sessionStorage.setItem('cbdnav','1')}catch{}location.replace('./'+p)};
 /* Favicon redondo generado desde img/cdb.jpeg (la imagen principal, que sí carga) */
 function circleIcon(){
@@ -201,7 +215,7 @@ function circleIcon(){
   im.src='img/cdb.jpeg';
 }
 function start(page){
-document.body.insertAdjacentHTML('beforeend','<div id="modal"><div class="box" id="mbox"></div></div><div id="toast"></div><a class="fab" href="#" data-a="sup" aria-label="Soporte por WhatsApp"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm5.2 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.5-3.9-4.7-4.1-.1-.2-1.1-1.5-1.1-2.8s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.1.1.3 0 .5l-.4.6c-.1.2-.3.3-.1.6.2.3.7 1.2 1.5 1.9 1 .9 1.9 1.2 2.2 1.3.3.1.4.1.6-.1l.8-1c.2-.2.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.2.1.8-.1 1.4z"/></svg><span>Soporte</span></a>');
+document.body.insertAdjacentHTML('beforeend','<div id="modal"><div class="box" id="mbox"></div></div><div id="ask"></div><div id="toast"></div><a class="fab" href="#" data-a="sup" aria-label="Soporte por WhatsApp"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm5.2 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.5-3.9-4.7-4.1-.1-.2-1.1-1.5-1.1-2.8s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.1.1.3 0 .5l-.4.6c-.1.2-.3.3-.1.6.2.3.7 1.2 1.5 1.9 1 .9 1.9 1.2 2.2 1.3.3.1.4.1.6-.1l.8-1c.2-.2.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.2.1.8-.1 1.4z"/></svg><span>Soporte</span></a>');
 if(page!=='catalogo')document.querySelector('.fab')?.remove();
 circleIcon();
 document.addEventListener('click',async e=>{
@@ -234,4 +248,4 @@ onAuthStateChanged(auth,async u=>{
   S.ready=true;paint(true);fin();
 });
 }
-export {isFree,S,A,I,P,H,$,esc,usd,sol,money,ms,fd,period,vig,uname,wa9,parseAcc,PAY,toast,modal,closeM,err,db,root,R,arr,by,denied,fetchSec,set,update,push,get,increment,serverTimestamp,paint,shellPaint,start,LOGO,BURG,banner,empty,who,stk,em,buyer,srch,has,pimg,accMsg,two,cancel,eye,flt,cards,catBar,catOpts,ordList,recRow,ST,prodM,ordM,ord,prd,val,openWa,copy,login,register,userIssue,MIN,auth,showLoad,hideNow,sendPasswordResetEmail}
+export {isFree,S,A,I,P,H,$,esc,usd,sol,money,ms,fd,period,vig,uname,wa9,parseAcc,PAY,toast,modal,closeM,err,db,root,R,arr,by,denied,fetchSec,set,update,push,get,increment,serverTimestamp,paint,shellPaint,start,LOGO,BURG,banner,empty,who,stk,em,buyer,srch,has,pimg,accMsg,two,cancel,eye,flt,cards,catBar,catOpts,ordList,recRow,ST,prodM,ordM,ord,prd,val,openWa,copy,login,register,userIssue,MIN,auth,showLoad,hideNow,sendPasswordResetEmail,ask}
