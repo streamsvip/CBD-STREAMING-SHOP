@@ -1,5 +1,5 @@
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {getAuth,onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getAuth,onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,sendPasswordResetEmail} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {getDatabase,ref,onValue,get,set,update,push,query,orderByChild,equalTo,serverTimestamp,increment} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 /* ===== Núcleo ===== */
 const S={me:null,adm:false,ready:false,bal:0,name:'',prods:[],free:{},orders:[],rech:[],users:[],sec:{},wa:'',tab:'catalog',view:'home',mode:'login',pm:'yape',q:'',cat:''};
@@ -25,7 +25,7 @@ const parseAcc=a=>{
   let p=String(a||'').split('|').map(x=>x.trim());
   if(p.length>5)p=[...p.slice(0,4),p.slice(4).join(' | ')];
   return p.length<2?[['Cuenta',a||'(cargando…)']]:['Correo','Contraseña','Perfil','PIN','Nota'].map((l,i)=>[l,p[i]]).filter(x=>x[1])};
-const PAY={yape:{n:'Yape',rows:[['Número','965730677'],['Nombre','Cristhian Eddy C. A.']],qr:'yaqr.jpeg',note:'Paga el equivalente en soles.'},bin:{n:'Binance Pay',rows:[['ID de usuario','1250169311'],['Nombre','CRB TECH SHP']],qr:'binqr.jpeg',note:'Paga el monto en dólares (USDT).'}};
+const PAY={yape:{n:'Yape',rows:[['Número','965730677'],['Nombre','Cristhian Eddy C. A.']],qr:'img/yaqr.jpeg',note:'Paga el equivalente en soles.'},bin:{n:'Binance Pay',rows:[['ID de usuario','1250169311'],['Nombre','CRB TECH SHP']],qr:'img/binqr.jpeg',note:'Paga el monto en dólares (USDT).'}};
 function toast(t,d=2800){const e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',d)}
 const modal=h=>{$('mbox').innerHTML=h;$('modal').classList.add('on')};
 const closeM=()=>$('modal').classList.remove('on');
@@ -97,7 +97,7 @@ function userIssue(u){
 /* ===== Vistas ===== */
 let shell=null;
 const ST={pend:'Pendiente',ok:'Aprobada',no:'Rechazada'};
-const LOGO=`<span class="logo"><img src="logo.jpeg" alt="CBD STREAMING SHOP" onerror="this.parentNode.innerHTML='<b>CBD STREAMING</b> <span>SHOP</span>'"></span>`;
+const LOGO=`<span class="logo"><img src="img/logo.jpeg" alt="CBD STREAMING SHOP" onerror="this.parentNode.innerHTML='<b>CBD STREAMING</b> <span>SHOP</span>'"></span>`;
 const BURG='<button class="burger" data-a="tg" aria-label="Menú"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg></button>';
 const who=()=>S.adm?'Administrador':uname({name:S.name,email:S.me?.email});
 const stk=p=>(S.free[p.id]||[]).length;
@@ -155,6 +155,9 @@ Object.assign(A,{
 });
 Object.assign(I,{q:v=>{S.q=v;const l=P.lst[S.tab];if(l)$('lst').innerHTML=l()}});
 const go=p=>location.replace('./'+p);
+/* Pantalla de carga: se muestra al inicio y se oculta cuando la página ya está lista */
+const showLoad=m=>{const b=$('boot');if(!b)return;if(m&&$('bm'))$('bm').textContent=m;b.classList.remove('off','gone')};
+const hideNow=()=>{const b=$('boot');if(!b||b.classList.contains('off'))return;b.classList.add('off');setTimeout(()=>b.classList.add('gone'),450)};
 function start(page){
 document.body.insertAdjacentHTML('beforeend','<div id="modal"><div class="box" id="mbox"></div></div><div id="toast"></div><a class="fab" href="#" data-a="sup" aria-label="Soporte por WhatsApp"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15L2 22l5.2-1.4A10 10 0 1 0 12 2zm5.2 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.5-3.9-4.7-4.1-.1-.2-1.1-1.5-1.1-2.8s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.1.1.3 0 .5l-.4.6c-.1.2-.3.3-.1.6.2.3.7 1.2 1.5 1.9 1 .9 1.9 1.2 2.2 1.3.3.1.4.1.6-.1l.8-1c.2-.2.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.2.1.8-.1 1.4z"/></svg><span>Soporte</span></a>');
 document.addEventListener('click',async e=>{
@@ -168,6 +171,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.dataset.ent
 try{localStorage.removeItem('ds_db');sessionStorage.removeItem('ds_me')}catch{}
 addEventListener('unhandledrejection',e=>toast(err(e.reason)));
 pub(()=>paint());
+setTimeout(hideNow,9000); /* seguridad: nunca dejar la pantalla de carga trabada */
 let authTk=0;
 onAuthStateChanged(auth,async u=>{
   const tk=++authTk;
@@ -183,7 +187,7 @@ onAuthStateChanged(auth,async u=>{
     if(page!==dest)return go(dest);
     S.pendName='';S.me=u;S.adm=adm;S.tab=adm?'pend':'catalog';priv(()=>paint());
   }
-  S.ready=true;paint(true);
+  S.ready=true;paint(true);hideNow();
 });
 }
-export {isFree,S,A,I,P,H,$,esc,usd,sol,money,ms,fd,period,vig,uname,wa9,parseAcc,PAY,toast,modal,closeM,err,db,root,R,arr,by,denied,fetchSec,set,update,push,get,increment,serverTimestamp,paint,shellPaint,start,LOGO,BURG,who,stk,em,buyer,srch,has,pimg,accMsg,two,cancel,eye,flt,cards,catBar,catOpts,ordList,recRow,ST,prodM,ordM,ord,prd,val,openWa,copy,login,register,userIssue,MIN,auth}
+export {isFree,S,A,I,P,H,$,esc,usd,sol,money,ms,fd,period,vig,uname,wa9,parseAcc,PAY,toast,modal,closeM,err,db,root,R,arr,by,denied,fetchSec,set,update,push,get,increment,serverTimestamp,paint,shellPaint,start,LOGO,BURG,who,stk,em,buyer,srch,has,pimg,accMsg,two,cancel,eye,flt,cards,catBar,catOpts,ordList,recRow,ST,prodM,ordM,ord,prd,val,openWa,copy,login,register,userIssue,MIN,auth,showLoad,hideNow,sendPasswordResetEmail}
