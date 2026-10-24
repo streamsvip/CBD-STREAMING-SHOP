@@ -1,5 +1,5 @@
 import * as K from './core.js';
-const {S,A,I,P,H,$,esc,usd,money,ms,fd,period,vig,uname,PAY,toast,modal,closeM,root,R,arr,by,fetchSec,set,update,push,get,increment,serverTimestamp,paint,shellPaint,start,stk,em,buyer,srch,has,pimg,two,cancel,flt,cards,catBar,catOpts,recRow,ST,ord,prd,val,userIssue,isFree}=K;
+const {S,A,I,P,H,$,esc,usd,money,ms,period,vig,uname,PAY,toast,modal,closeM,root,R,fetchSec,set,update,push,increment,serverTimestamp,paint,shellPaint,start,stk,em,buyer,srch,has,pimg,two,cancel,flt,cards,catBar,catOpts,recRow,ST,ord,prd,val,userIssue,isFree,empty}=K;
 
 /* ================= Datos del administrador ================= */
 async function decide(id,ok){
@@ -37,11 +37,6 @@ async function setBal(u,mode,v){
   await update(root,x);
 }
 const saveWa=wa=>set(R('settings/wa'),wa);
-/* Ajustes de saldo (se leen al abrir el Historial) */
-async function loadLogs(){
-  try{S.logs=by(arr(await get(R('balanceLogs'))))}catch{S.logs=S.logs||[]}
-  if(S.tab==='hist')paint();
-}
 
 /* ================= Entregas: formato de cuenta o mensaje libre ================= */
 /* Cuenta: correo|contraseña|perfil|pin|nota   ·   Mensaje libre: se guarda como "@@texto" */
@@ -79,77 +74,60 @@ const readAcc=()=>{
 /* ================= Vistas ================= */
 const OPEN={};
 const fdt=t=>new Date(t).toLocaleString('es-PE',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+const alive=o=>ms(o.createdAt)+(o.days||30)*864e5>Date.now();
 
 /* ---- Productos ---- */
-const prodList=()=>{const l=S.prods.filter(p=>has([p.name,p.cat,p.desc],S.q));return l.length?l.map(p=>`<div class="card" style="margin-bottom:10px">${pimg(p,'sm')}<div class="row" style="border:0;padding:0"><b>${esc(p.name)} · ${money(p.price)} · ${p.days} días · ${p.ren?'Renovable':'No renovable'}${p.cat?' · '+esc(p.cat):''}</b><span style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span class="tag">Stock ${stk(p)}</span><button data-a="adds" data-id="${p.id}">+ Stock</button><button class="ghost" data-a="editp" data-id="${p.id}">Editar</button><button class="no" data-a="delp" data-id="${p.id}">Eliminar</button></span></div></div>`).join(''):'<p class="mu">Crea tu primer producto arriba.</p>'};
-const prodV=()=>`<div class="sec card"><h3>Crear producto</h3><div class="two"><div><label>Nombre</label><input id="pn" maxlength="80"></div><div><label>Precio (USD)</label><input id="pp" type="number" min="0" step="0.01"></div></div><label>Descripción</label><textarea id="pd" rows="3"></textarea><div class="two"><div><label>Categoría</label><input id="pc" list="cl" placeholder="Streaming, Música…"><datalist id="cl">${catOpts()}</datalist></div><div><label>¿Renovable?</label><select id="pr"><option value="1">Sí, renovable</option><option value="0">No renovable</option></select></div></div><div class="two"><div><label>Duración (días)</label><input id="pdays" type="number" min="1" value="30"></div><div><label>Link de la imagen (opcional)</label><input id="pi" placeholder="https://..."></div></div><button data-a="addp">Crear producto</button></div><div class="sec"><h3>Productos (${S.prods.length})</h3>${srch('Buscar producto o categoría…')}<div id="lst">${prodList()}</div></div>`;
+const prodList=()=>{const l=S.prods.filter(p=>has([p.name,p.cat,p.desc],S.q));return l.length?l.map(p=>`<div class="card pitem"><div class="pth">${pimg(p,'sm2')}</div><div class="pbody"><b>${esc(p.name)}</b><div class="meta"><span>${money(p.price)}</span><span>⏱ ${p.days} días</span><span>${p.ren?'Renovable':'No renovable'}</span>${p.cat?`<span>${esc(p.cat)}</span>`:''}<span class="tag ${stk(p)?'ok':'no'}">Stock ${stk(p)}</span></div></div><div class="pact"><button data-a="adds" data-id="${p.id}">+ Stock</button><button class="ghost" data-a="editp" data-id="${p.id}">Editar</button><button class="no" data-a="delp" data-id="${p.id}">Eliminar</button></div></div>`).join(''):empty('Crea tu primer producto arriba.')};
+const prodV=()=>`<div class="sec card"><h3>Crear producto</h3><div class="two"><div><label>Nombre</label><input id="pn" maxlength="80"></div><div><label>Precio (USD)</label><input id="pp" type="number" min="0" step="0.01"></div></div><label>Descripción</label><textarea id="pd" rows="3"></textarea><div class="two"><div><label>Categoría</label><input id="pc" list="cl" placeholder="Streaming, Música…"><datalist id="cl">${catOpts()}</datalist></div><div><label>¿Renovable?</label><select id="pr"><option value="1">Sí, renovable</option><option value="0">No renovable</option></select></div></div><div class="two"><div><label>Duración (días)</label><input id="pdays" type="number" min="1" value="30"></div><div><label>Link de la imagen (opcional)</label><input id="pi" placeholder="https://..."></div></div><button data-a="addp">Crear producto</button></div><div class="sec"><h3>Productos <span class="pill">${S.prods.length}</span></h3>${srch('Buscar producto o categoría…')}<div id="lst">${prodList()}</div></div>`;
 
 /* ---- Inventario: cuentas disponibles para entregar ---- */
 const stItem=s=>`<div class="row"><span class="acc">${accSum(S.sec[s])}</span><span style="display:flex;gap:6px"><button class="ghost" data-a="editst" data-id="${s}">Editar</button><button class="no" data-a="delst" data-id="${s}">Eliminar</button></span></div>`;
 const invList=()=>{
   const q=S.q;
   const l=S.prods.map(p=>{const ids=S.free[p.id]||[],hit=has([p.name,p.cat],q);return{p,ids,hit,m:(q&&!hit)?ids.filter(s=>has([S.sec[s]||''],q)):ids}}).filter(x=>!q||x.hit||x.m.length);
-  return l.length?l.map(({p,ids,m})=>{const op=!!(OPEN[p.id]||q);return `<div class="card inv"><div class="row" style="border:0;padding:0;flex-wrap:nowrap"><button class="ghost invh" data-a="invt" data-id="${p.id}">${op?'▾':'▸'} <b>${esc(p.name)}</b> <span class="tag ${ids.length?'ok':'no'}">${ids.length} disponible${ids.length===1?'':'s'}</span></button><button data-a="adds" data-id="${p.id}">+ Agregar</button></div>${op?`<div class="invb">${m.length?m.map(stItem).join(''):'<p class="mu" style="margin:10px 0 0">Sin cuentas disponibles.</p>'}</div>`:''}</div>`}).join(''):'<p class="mu">No hay productos que coincidan.</p>';
+  return l.length?l.map(({p,ids,m})=>{const op=!!(OPEN[p.id]||q);return `<div class="card inv"><div class="row" style="border:0;padding:0;flex-wrap:nowrap"><button class="ghost invh" data-a="invt" data-id="${p.id}">${op?'▾':'▸'} <b>${esc(p.name)}</b> <span class="tag ${ids.length?'ok':'no'}">${ids.length} disponible${ids.length===1?'':'s'}</span></button><button data-a="adds" data-id="${p.id}">+ Agregar</button></div>${op?`<div class="invb">${m.length?m.map(stItem).join(''):'<p class="mu" style="margin:10px 0 0">Sin cuentas disponibles.</p>'}</div>`:''}</div>`}).join(''):empty('No hay productos que coincidan.');
 };
-const invV=()=>{const n=Object.values(S.free).reduce((s,a)=>s+a.length,0);return `<div class="sec"><h3>Inventario disponible (${n})</h3><p class="mu">Cuentas listas para entregar. Toca un producto para ver y corregir sus datos (correo, contraseña, perfil, PIN, nota o mensaje libre).</p>${srch('Buscar por correo, mensaje o producto…')}<div id="lst">${invList()}</div></div>`};
+const invV=()=>{const n=Object.values(S.free).reduce((s,a)=>s+a.length,0);return `<div class="sec"><h3>Inventario disponible <span class="pill">${n}</span></h3><p class="mu">Cuentas listas para entregar. Toca un producto para ver y corregir sus datos (correo, contraseña, perfil, PIN, nota o mensaje libre).</p>${srch('Buscar por correo, mensaje o producto…')}<div id="lst">${invList()}</div></div>`};
 
-/* ---- Recargas ---- */
-const pendV=()=>{const p=S.rech.filter(r=>r.status==='pend'),h=S.rech.filter(r=>r.status!=='pend');return `<div class="sec"><h3>Recargas pendientes (${p.length})</h3>${p.length?p.map(r=>recRow(r,`<span style="display:flex;gap:6px"><button class="ok" data-a="decide" data-id="${r.id}" data-ok="1">Aceptar</button><button class="no" data-a="decide" data-id="${r.id}" data-ok="0">Rechazar</button></span>`)).join(''):'<p class="mu">No hay recargas por revisar.</p>'}</div><div class="sec"><h3>Últimas recargas revisadas</h3>${h.length?h.slice(0,15).map(r=>recRow(r,`<span class="tag ${r.status}">${ST[r.status]}</span>`)).join(''):'<p class="mu">Sin movimientos todavía.</p>'}<p class="mu">El historial completo está en la pestaña Historial.</p></div>`};
+/* ---- Recargas: pendientes + historial propio de recargas ---- */
+let RN=30;
+const recHist=()=>{
+  const l=S.rech.filter(r=>r.status!=='pend'&&has([r.email,r.ref,PAY[r.method]?.n,ST[r.status]],S.q)),v=l.slice(0,RN);
+  return `<p class="mu cnt2">${l.length} registro${l.length===1?'':'s'}</p>${v.length?v.map(r=>recRow(r,`<span class="tag ${r.status}">${ST[r.status]}</span>`)).join(''):empty('Sin movimientos con estos filtros.')}${l.length>v.length?'<button class="ghost wide" data-a="morer">Ver más</button>':''}`;
+};
+const pendV=()=>{
+  const p=S.rech.filter(r=>r.status==='pend'),n=S.rech.length-p.length;
+  return `<div class="sec"><h3>Recargas pendientes <span class="pill">${p.length}</span></h3>${p.length?p.map(r=>recRow(r,`<span style="display:flex;gap:6px"><button class="ok" data-a="decide" data-id="${r.id}" data-ok="1">Aceptar</button><button class="no" data-a="decide" data-id="${r.id}" data-ok="0">Rechazar</button></span>`)).join(''):empty('No hay recargas por revisar.')}</div><div class="sec"><h3>Historial de recargas <span class="pill">${n}</span></h3>${srch('Buscar por correo, operación o estado…')}<div id="lst">${recHist()}</div></div>`;
+};
 
 /* ---- Clientes y configuración ---- */
-const cliV=()=>{const c=S.users.filter(u=>u.id!==S.me.uid);return `<div class="sec"><h3>Clientes (${c.length})</h3>${c.length?c.map(u=>`<div class="row"><span><b>${esc(uname(u))}</b> · ${esc(u.email)}${S.users.filter(x=>String(x.email).toLowerCase()===String(u.email).toLowerCase()).length>1?' <span class="tag no">Correo repetido</span>':''}<br><small class="mu">Saldo: ${money(u.balance)}</small></span><button class="ghost" data-a="balm" data-id="${u.id}">Gestionar saldo</button></div>`).join(''):'<p class="mu">Aún no hay clientes registrados.</p>'}</div>`};
-const confV=()=>`<div class="sec card"><h3>Configuración</h3><label>WhatsApp del soporte (con código de país, por ejemplo 51999999999)</label><input id="sw" value="${esc(S.wa)}"><button data-a="savewa" style="margin-top:10px">Guardar configuración</button></div>`;
+const cliV=()=>{const c=S.users.filter(u=>u.id!==S.me.uid);return `<div class="sec"><h3>Clientes <span class="pill">${c.length}</span></h3>${c.length?c.map(u=>`<div class="card row cli" style="flex-direction:row;margin-bottom:10px"><span class="usr"><span class="av">${esc(uname(u)[0].toUpperCase())}</span><span><b>${esc(uname(u))}</b>${S.users.filter(x=>String(x.email).toLowerCase()===String(u.email).toLowerCase()).length>1?' <span class="tag no">Correo repetido</span>':''}<br><small class="mu">${esc(u.email)} · Saldo: ${money(u.balance)}</small></span></span><button class="ghost" data-a="balm" data-id="${u.id}">Gestionar saldo</button></div>`).join(''):empty('Aún no hay clientes registrados.')}</div>`};
+const confV=()=>`<div class="sec card"><h3>Configuración</h3><label>WhatsApp del soporte (con código de país, por ejemplo 51999999999)</label><input id="sw" value="${esc(S.wa)}"><button data-a="savewa" style="margin-top:6px">Guardar configuración</button></div>`;
 
-/* ---- Historial unificado: ventas + recargas + ajustes de saldo ---- */
-const H2={t:'all',p:'30',n:100};
-const evs=()=>{
-  const e=[];
-  S.orders.forEach(o=>e.push({k:'buy',t:ms(o.createdAt),o}));
-  S.rech.forEach(r=>e.push({k:'rec',t:ms(r.createdAt),r}));
-  (S.logs||[]).forEach(l=>e.push({k:'bal',t:ms(l.createdAt),l}));
-  return e.sort((a,b)=>b.t-a.t);
-};
-const evText=e=>{
-  if(e.k==='buy'){const o=e.o,b=buyer(o.uid);return ['venta compra',b.email,uname(b),o.pname,o.cname,o.cwa,em(o)]}
-  if(e.k==='rec'){const r=e.r;return ['recarga',r.email,r.ref,PAY[r.method]?.n,ST[r.status]]}
-  const l=e.l,b=buyer(l.uid);return ['ajuste saldo',b.email,uname(b),l.mode==='add'?'agregar':'establecer'];
-};
+/* ---- Historial: solo cuentas entregadas (ventas). Las recargas tienen su propio historial en la pestaña Recargas ---- */
+const H2={p:'30',s:'all',n:60};
 const cut=()=>{const p=H2.p;if(p==='all')return 0;if(p==='today'){const d=new Date();d.setHours(0,0,0,0);return d.getTime()}return Date.now()-Number(p)*864e5};
-const hist=()=>{const c=cut();return evs().filter(e=>(H2.t==='all'||e.k===H2.t)&&e.t>=c&&has(evText(e),S.q))};
-const hRow=e=>{
-  const d=fdt(e.t);
-  if(e.k==='buy'){
-    const o=e.o,b=buyer(o.uid);
-    return `<div class="hrow buy"><div class="hi"><div><span class="tag">Venta</span> <b>${esc(o.pname)}</b></div><small class="mu">Comprador: ${esc(uname(b))} · ${esc(b.email||'—')}${o.cname?'<br>Cliente final: '+esc(o.cname)+(o.cwa?' · '+esc(o.cwa):''):''}<br>${d} · ${period(o)}</small> ${vig(o)}</div><div class="hr"><b>${money(o.price)}</b><span class="oa"><button class="ghost" data-a="show" data-id="${o.id}">Ver</button><button class="ghost" data-a="edito" data-id="${o.id}">Editar</button></span></div></div>`;
-  }
-  if(e.k==='rec'){
-    const r=e.r;
-    return `<div class="hrow rec"><div class="hi"><div><span class="tag">Recarga</span> <b>${esc(PAY[r.method]?.n||r.method)}</b> <span class="tag ${r.status}">${ST[r.status]}</span></div><small class="mu">${esc(r.email)} · op. ${esc(r.ref)}<br>${d}</small></div><div class="hr"><b>${money(r.amount)}</b></div></div>`;
-  }
-  const l=e.l,b=buyer(l.uid),a=buyer(l.by);
-  return `<div class="hrow bal"><div class="hi"><div><span class="tag">Ajuste</span> <b>${l.mode==='add'?'Saldo agregado':'Saldo establecido'}</b></div><small class="mu">${esc(b.email||l.uid)} · ${usd(l.before)} → ${usd(l.after)}<br>${d}${a.email?' · por '+esc(a.email):''}</small></div><div class="hr"><b>${l.mode==='add'?'+':'='}${money(l.mode==='add'?l.amount:l.after)}</b></div></div>`;
+const hist=()=>{const c=cut();return S.orders.filter(o=>ms(o.createdAt)>=c&&(H2.s==='all'||(H2.s==='on')===alive(o))&&has([o.pname,buyer(o.uid).email,uname(buyer(o.uid)),o.cname,o.cwa,em(o)],S.q))};
+const hRow=o=>{
+  const b=buyer(o.uid);
+  return `<div class="hrow">${pimg({name:o.pname,img:o.img},'sm2')}<div class="hi"><div class="ht"><b>${esc(o.pname)}</b> ${vig(o)}</div><div class="hm"><div><span>Comprador</span>${esc(uname(b))} · ${esc(b.email||'—')}</div><div><span>Cuenta entregada</span>${esc(em(o)||'—')}</div>${o.cname?`<div><span>Cliente final</span>${esc(o.cname)}${o.cwa?' · '+esc(o.cwa):''}</div>`:''}<div><span>Fecha</span>${fdt(ms(o.createdAt))}</div><div><span>Vigencia</span>${period(o)}</div></div></div><div class="hr"><b>${money(o.price)}</b><span class="oa"><button class="ghost" data-a="show" data-id="${o.id}">Ver</button><button class="ghost" data-a="edito" data-id="${o.id}">Editar</button></span></div></div>`;
 };
 const histList=()=>{
   const l=hist(),v=l.slice(0,H2.n);
-  return `<p class="mu">${l.length} movimiento${l.length===1?'':'s'}</p>${v.length?v.map(hRow).join(''):'<p class="mu">No hay movimientos con estos filtros.</p>'}${l.length>v.length?'<button class="ghost" style="width:100%" data-a="more">Ver más</button>':''}`;
+  return `<p class="mu cnt2">${l.length} entrega${l.length===1?'':'s'}</p>${v.length?v.map(hRow).join(''):empty('No hay entregas con estos filtros.')}${l.length>v.length?'<button class="ghost wide" data-a="more">Ver más</button>':''}`;
 };
 const kpis=()=>{
   const t0=new Date();t0.setHours(0,0,0,0);
   const T=t0.getTime(),M=Date.now()-30*864e5,sum=a=>a.reduce((s,o)=>s+(Number(o.price)||0),0);
-  const td=S.orders.filter(o=>ms(o.createdAt)>=T),mo=S.orders.filter(o=>ms(o.createdAt)>=M),rc=S.rech.filter(r=>r.status==='ok');
-  return [['Ventas de hoy',td.length+' · '+usd(sum(td))],['Últimos 30 días',mo.length+' · '+usd(sum(mo))],['Total vendido',S.orders.length+' · '+usd(sum(S.orders))],['Recargas aprobadas',rc.length+' · '+usd(rc.reduce((s,r)=>s+(Number(r.amount)||0),0))]];
+  const td=S.orders.filter(o=>ms(o.createdAt)>=T),mo=S.orders.filter(o=>ms(o.createdAt)>=M);
+  return [['Entregas de hoy',td.length+' · '+usd(sum(td))],['Últimos 30 días',mo.length+' · '+usd(sum(mo))],['Total vendido',S.orders.length+' · '+usd(sum(S.orders))],['Cuentas vigentes',S.orders.filter(alive).length+'']];
 };
 const chips=(act,cur,list)=>list.map(x=>`<button class="${cur===x[0]?'':'ghost'}" data-a="${act}" data-v="${x[0]}">${x[1]}</button>`).join('');
-const histV=()=>`<div class="sec"><h3>Historial</h3><div class="kpis">${kpis().map(k=>`<div class="kpi"><small>${k[0]}</small><b>${k[1]}</b></div>`).join('')}</div><div class="cbar">${srch('Buscar por correo, producto, cliente u operación…')}<div class="chips2">${chips('hf',H2.t,[['all','Todo'],['buy','Ventas'],['rec','Recargas'],['bal','Ajustes de saldo']])}</div><div class="chips2">${chips('hp',H2.p,[['today','Hoy'],['7','7 días'],['30','30 días'],['all','Todo']])}<button class="ghost" data-a="csv" style="margin-left:auto">Exportar CSV</button></div></div><div id="lst">${histList()}</div></div>`;
-const csvRow=e=>{
-  const d=fdt(e.t);
-  if(e.k==='buy'){const o=e.o,b=buyer(o.uid);return [d,'Venta',b.email||'',o.pname+(o.cname?' / cliente: '+o.cname:''),o.price]}
-  if(e.k==='rec'){const r=e.r;return [d,'Recarga '+(ST[r.status]||''),r.email,(PAY[r.method]?.n||r.method)+' op. '+r.ref,r.amount]}
-  const l=e.l,b=buyer(l.uid);return [d,l.mode==='add'?'Saldo agregado':'Saldo establecido',b.email||l.uid,usd(l.before)+' → '+usd(l.after),l.mode==='add'?l.amount:l.after];
-};
+const histV=()=>`<div class="sec"><h3>Historial de entregas</h3><div class="kpis">${kpis().map(k=>`<div class="kpi"><small>${k[0]}</small><b>${k[1]}</b></div>`).join('')}</div><div class="cbar">${srch('Buscar por producto, comprador, cliente o cuenta…')}<div class="chips2">${chips('hp',H2.p,[['today','Hoy'],['7','7 días'],['30','30 días'],['all','Todo']])}</div><div class="chips2">${chips('hs',H2.s,[['all','Todas'],['on','Vigentes'],['off','Vencidas']])}<button class="ghost" data-a="csv" style="margin-left:auto">Exportar CSV</button></div></div><div id="lst">${histList()}</div></div>`;
+const csvRow=o=>{const b=buyer(o.uid);return [fdt(ms(o.createdAt)),o.pname,b.email||'',em(o)||'',o.cname||'',o.cwa||'',alive(o)?'Vigente':'Vencida',o.price]};
 
 P.views={catalog:()=>catBar()+`<div id="lst">${cards(flt())}</div>`,pend:pendV,prod:prodV,inv:invV,cli:cliV,hist:histV,conf:confV};
-P.lst={catalog:()=>cards(flt()),prod:prodList,inv:invList,hist:histList};
+P.lst={catalog:()=>cards(flt()),pend:recHist,prod:prodList,inv:invList,hist:histList};
 P.tabs=()=>{const n=S.rech.filter(r=>r.status==='pend').length;return [['pend','Recargas'+(n?' ('+n+')':'')],['prod','Productos'],['inv','Inventario'],['cli','Clientes'],['hist','Historial'],['conf','Config'],['catalog','Catálogo']]};
 
 /* ================= Ventanas ================= */
@@ -165,8 +143,9 @@ const editPM=p=>`<h3>Editar producto</h3><label>Nombre</label><input id="en" max
 /* ================= Acciones ================= */
 const tab0=A.tab;
 Object.assign(A,{
-  tab:d=>{tab0(d);if(d.t==='hist')loadLogs()},
+  tab:d=>{RN=30;H2.n=60;tab0(d)},
   decide:async d=>{await decide(d.id,d.ok==='1');toast(d.ok==='1'?'Recarga aprobada':'Recarga rechazada')},
+  morer:()=>{RN+=30;paint(true)},
   addp:async()=>{
     await saveProd(null,{name:val('pn'),desc:val('pd'),img:val('pi'),days:parseInt(val('pdays')),cat:val('pc'),ren:val('pr')==='1',price:parseFloat(val('pp'))});
     paint(true);toast('Producto creado. Ahora súbele stock con el botón + Stock');
@@ -204,18 +183,18 @@ Object.assign(A,{
   saveo:async d=>{const o=ord(d.id),a=readAcc();await saveAcc(o.sid,a);S.sec[o.sid]=a;closeM();paint(true);toast('Entrega actualizada')},
   /* saldo y config */
   balm:d=>modal(balM(S.users.find(u=>u.id===d.id))),
-  setbal:async d=>{const v=parseFloat($('bm').value);if(!(v>=0))return toast('Ingresa un monto válido');await setBal(S.users.find(u=>u.id===d.id),d.m,v);closeM();toast('Saldo actualizado');loadLogs()},
+  setbal:async d=>{const v=parseFloat($('bm').value);if(!(v>=0))return toast('Ingresa un monto válido');await setBal(S.users.find(u=>u.id===d.id),d.m,v);closeM();toast('Saldo actualizado')},
   savewa:async()=>{await saveWa(val('sw').replace(/\D/g,''));toast('Configuración guardada')},
-  /* historial */
-  hf:d=>{H2.t=d.v;H2.n=100;paint(true)},
-  hp:d=>{H2.p=d.v;H2.n=100;paint(true)},
-  more:()=>{H2.n+=100;paint(true)},
+  /* historial de entregas */
+  hp:d=>{H2.p=d.v;H2.n=60;paint(true)},
+  hs:d=>{H2.s=d.v;H2.n=60;paint(true)},
+  more:()=>{H2.n+=60;paint(true)},
   csv:()=>{
     const q=v=>typeof v==='string'?'"'+v.replace(/^[=+\-@]/,"'$&").replace(/"/g,'""')+'"':v;
-    const rows=[['Fecha','Tipo','Usuario','Detalle','Monto USD'],...hist().map(csvRow)];
+    const rows=[['Fecha','Producto','Comprador','Cuenta entregada','Cliente final','WhatsApp cliente','Estado','Monto USD'],...hist().map(csvRow)];
     const a=document.createElement('a');
-    a.href=URL.createObjectURL(new Blob(['\ufeff'+rows.map(r=>r.map(q).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}));
-    a.download='historial-cbd-'+new Date().toISOString().slice(0,10)+'.csv';
+    a.href=URL.createObjectURL(new Blob(['﻿'+rows.map(r=>r.map(q).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}));
+    a.download='entregas-cbd-'+new Date().toISOString().slice(0,10)+'.csv';
     a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
   },
 });
