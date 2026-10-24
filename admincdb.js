@@ -156,7 +156,7 @@ const addSM=p=>`<h3>Agregar stock</h3><p class="mu">${esc(p.name)}</p><label>Tip
 ${two(`<button data-a="addst" data-id="${p.id}">Agregar</button>`,cancel)}`;
 const bulkM=p=>{const ids=S.free[p.id]||[];return `<h3>Editar en bloque</h3><p class="mu"><b>${esc(p.name)}</b> · ${ids.length} disponible${ids.length===1?'':'s'}. Una cuenta por línea: correo|contraseña|perfil|pin|nota. Para un mensaje libre empieza la línea con @@. Si borras una línea se elimina esa cuenta; si agregas líneas se crean cuentas nuevas.</p><textarea id="bk" rows="12" wrap="off" spellcheck="false" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;white-space:pre;overflow:auto">${esc(ids.map(s=>S.sec[s]||'').join('\n'))}</textarea>${two(`<button data-a="bsave" data-id="${p.id}">Guardar cambios</button>`,cancel)}`};
 const editOM=o=>`<h3>Editar entrega</h3><p class="mu">${esc(o.pname)}. El cliente verá los datos actualizados.</p>${accForm(S.sec[o.sid])}${two(`<button data-a="saveo" data-id="${o.id}">Guardar cambios</button>`,cancel)}`;
-const balM=u=>`<h3>Saldo del cliente</h3><p>${esc(u.email)}<br><b>Actual: ${money(u.balance)}</b></p><label>Monto (USD)</label><input id="bm" type="number" min="0" step="0.01">${two(`<button class="ok" data-a="setbal" data-id="${u.id}" data-m="add">Agregar</button>`,`<button data-a="setbal" data-id="${u.id}" data-m="set">Establecer saldo</button>`)}<button class="ghost" style="width:100%;margin-top:8px" data-a="closeM">Cancelar</button>`;
+const balM=u=>`<h3>Saldo del cliente</h3><p>${esc(u.email)}<br><b>Actual: ${money(u.balance)}</b></p><label for="bamt">Monto (USD)</label><input id="bamt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00"><small class="mu" style="display:block;margin:-6px 0 12px"><b>Agregar</b>: mínimo $0.10 · <b>Establecer</b>: cualquier monto desde $0.00</small>${two(`<button class="ok" data-a="setbal" data-id="${u.id}" data-m="add">Agregar</button>`,`<button data-a="setbal" data-id="${u.id}" data-m="set">Establecer saldo</button>`)}<button class="no" style="width:100%;margin-top:8px" data-a="setbal" data-id="${u.id}" data-m="set" data-z="1">Poner saldo en $0.00</button><button class="ghost" style="width:100%;margin-top:8px" data-a="closeM">Cancelar</button>`;
 const editPM=p=>`<h3>Editar producto</h3><label>Nombre</label><input id="en" maxlength="80" value="${esc(p.name)}"><label>Precio (USD)</label><input id="ep" type="number" min="0" step="0.01" value="${p.price}"><label>Descripción</label><textarea id="ed" rows="4">${esc(p.desc)}</textarea><label>Categoría</label><input id="ec" list="cl2" value="${esc(p.cat||'')}"><datalist id="cl2">${catOpts()}</datalist><label>¿Renovable?</label><select id="er"><option value="1" ${p.ren?'selected':''}>Sí, renovable</option><option value="0" ${p.ren?'':'selected'}>No renovable</option></select><label>Duración (días)</label><input id="edy" type="number" min="1" value="${p.days}"><label>Link de la imagen</label><input id="ei" value="${esc(p.img||'')}">${two(`<button data-a="savep" data-id="${p.id}">Guardar cambios</button>`,cancel)}`;
 
 /* ================= Acciones ================= */
@@ -217,7 +217,16 @@ Object.assign(A,{
   saveo:async d=>{const o=ord(d.id),a=readAcc();await saveAcc(o.sid,a);S.sec[o.sid]=a;closeM();paint(true);toast('Entrega actualizada')},
   /* saldo y config */
   balm:d=>modal(balM(S.users.find(u=>u.id===d.id))),
-  setbal:async d=>{const v=parseFloat($('bm').value);if(!(v>=0))return toast('Ingresa un monto válido');await setBal(S.users.find(u=>u.id===d.id),d.m,v);closeM();toast('Saldo actualizado')},
+  setbal:async d=>{
+    const u=S.users.find(x=>x.id===d.id),z=d.z==='1';
+    let v=z?0:parseFloat(($('bamt')?.value||'').replace(',','.'));
+    if(!Number.isFinite(v)||v<0)return toast('Ingresa un monto válido');
+    v=Math.round(v*100)/100;
+    if(d.m==='add'&&v<0.1)return toast('El monto mínimo para agregar es $0.10');
+    if(d.m==='add'&&v>100000)return toast('Monto demasiado alto');
+    if(z&&!confirm('¿Dejar el saldo de '+u.email+' en $0.00?'))return;
+    await setBal(u,d.m,v);closeM();toast(d.m==='add'?'Saldo agregado: +'+usd(v):'Saldo establecido en '+usd(v));
+  },
   savewa:async()=>{await saveWa(val('sw').replace(/\D/g,''));toast('Configuración guardada')},
   /* historial de entregas */
   hp:d=>{H2.p=d.v;H2.n=60;paint(true)},
