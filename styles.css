@@ -120,4 +120,20 @@ html{scroll-behavior:smooth}
 .pweye{position:absolute;right:0;top:4px;bottom:10px;width:44px;padding:0;background:transparent;box-shadow:none;color:var(--mu);display:grid;place-items:center}
 .pweye:hover:not(:disabled){transform:none;color:var(--red2);filter:none}
 .pweye svg{width:20px;height:20px}.pweye .off{display:none}.pweye.on .off{display:block}.pweye.on .open{display:none}
-
+/* ===== MEJORAS PANEL + QR pequeño — pegar al FINAL de styles.css ===== */
+/* QR de recarga más pequeño */
+.qrb{width:140px;margin:8px auto}
+.qrb img{padding:4px}
+.fv{white-space:pre-wrap}
+/* Panel admin: KPIs, historial e inventario */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.kpi{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:linear-gradient(180deg,#160a0c,#0e0708)}
+.kpi small{display:block;color:var(--mu);font-size:12px}.kpi b{font-size:17px}
+.hrow{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;border:1px solid var(--line);border-left:3px solid var(--mu);border-radius:10px;padding:10px 12px;margin-bottom:8px;background:#0e0708}
+.hrow.buy{border-left-color:var(--red2)}.hrow.rec{border-left-color:#3ddc84}.hrow.bal{border-left-color:#4da3ff}
+.hrow .hi{flex:1;min-width:210px;line-height:1.45}.hrow .hr{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.chips2+.chips2{margin-top:8px}
+.inv{margin-bottom:10px}.invh{text-align:left;flex:1;min-width:0;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.invb{margin-top:10px;border-top:1px solid var(--line)}
+.acc{min-width:0;flex:1;word-break:break-word}
+@media(max-width:560px){.hrow .hr{align-items:flex-start}}
