@@ -1,4 +1,4 @@
-import * as K from './core.js';
+import * as K from './core.js?v=20261025';
 const {S,A,I,P,H,$,esc,usd,money,ms,period,vig,uname,PAY,toast,modal,closeM,root,R,fetchSec,set,update,push,increment,serverTimestamp,paint,shellPaint,start,stk,em,buyer,srch,has,pimg,two,cancel,flt,cards,catBar,catOpts,recRow,ST,ord,prd,val,userIssue,isFree,empty}=K;
 
 /* ================= Datos del administrador ================= */
@@ -36,39 +36,48 @@ async function setBal(u,mode,v){
   x['balanceLogs/'+push(R('balanceLogs')).key]={uid:u.id,by:S.me.uid,mode,amount:v,before:base,after:nv,createdAt:serverTimestamp()};
   await update(root,x);
 }
+const clearStock=ids=>{const x={};ids.forEach(s=>{x['stock/'+s]=null;x['secrets/'+s]=null});return update(root,x)};
+/* Edición en bloque: las líneas actualizan las cuentas existentes en orden, las que sobran se eliminan y las nuevas se crean */
+async function bulkSave(pid,lines){
+  const ids=[...(S.free[pid]||[])],x={};
+  lines.forEach((l,i)=>{if(i<ids.length)x['secrets/'+ids[i]]=l});
+  ids.slice(lines.length).forEach(s=>{x['stock/'+s]=null;x['secrets/'+s]=null});
+  if(Object.keys(x).length)await update(root,x);
+  const extra=lines.slice(ids.length);
+  if(extra.length)await addStock(pid,extra);
+}
 const saveWa=wa=>set(R('settings/wa'),wa);
 
 /* ================= Entregas: formato de cuenta o mensaje libre ================= */
 /* Cuenta: correo|contraseña|perfil|pin|nota   ·   Mensaje libre: se guarda como "@@texto" */
 const MAXL=400;
-const pidOf=sid=>Object.keys(S.free).find(k=>S.free[k].includes(sid));
-const accSum=raw=>{
-  if(!raw)return '<i class="mu">(sin datos)</i>';
-  if(isFree(raw)){const t=raw.slice(2).trim();return `<span class="tag">Mensaje</span> <span class="mu">${esc(t.slice(0,90))}${t.length>90?'…':''}</span>`}
-  const p=raw.split('|').map(x=>x.trim());
-  const sub=[p[1]&&'Clave: '+p[1],p[2]&&'Perfil: '+p[2],p[3]&&'PIN: '+p[3],p[4]&&'Nota: '+p[4]].filter(Boolean).map(x=>esc(x)).join(' · ');
-  return `<b>${esc(p[0])}</b>${sub?`<br><small class="mu">${sub}</small>`:''}`;
-};
 const accForm=raw=>{
   const fr=isFree(raw),p=fr?[]:String(raw||'').split('|'),g=i=>esc((p[i]||'').trim());
   return `<label>Tipo de entrega</label><select id="emd" data-i="emd"><option value="acc" ${fr?'':'selected'}>Cuenta (correo y contraseña)</option><option value="free" ${fr?'selected':''}>Mensaje libre</option></select>
 <div id="em_acc" style="${fr?'display:none':''}"><label>Correo</label><input id="e0" value="${g(0)}"><label>Contraseña</label><input id="e1" value="${g(1)}"><div class="two"><div><label>Perfil</label><input id="e2" value="${g(2)}"></div><div><label>PIN</label><input id="e3" value="${g(3)}"></div></div><label>Nota o comentario (opcional)</label><input id="e4" maxlength="150" value="${g(4)}" placeholder="Ej: no cambiar la clave"></div>
 <div id="em_free" style="${fr?'':'display:none'}"><label>Mensaje que verá el cliente</label><textarea id="ef" rows="5" maxlength="${MAXL-2}" placeholder="Ej: Envía tu correo a soporte por WhatsApp para activar tu cuenta">${esc(fr?String(raw).slice(2).trim():'')}</textarea></div>`;
 };
-const readAcc=()=>{
-  if(val('emd')==='free'){
-    const t=val('ef');
-    if(!t)throw 'Escribe el mensaje de la entrega';
-    if(t.length>MAXL-2)throw 'El mensaje es muy largo (máx '+(MAXL-2)+' caracteres)';
-    return '@@'+t;
-  }
-  const v=[0,1,2,3,4].map(i=>val('e'+i));
-  if(!v[0]||!v[1])throw 'El correo y la contraseña son obligatorios (o cambia a Mensaje libre)';
+const packMsg=t=>{
+  if(!t)throw 'Escribe el mensaje de la entrega';
+  if(t.length>MAXL-2)throw 'El mensaje es muy largo (máx '+(MAXL-2)+' caracteres)';
+  return '@@'+t;
+};
+const packAcc=v=>{
+  if(!v[0]||!v[1])throw 'El correo y la contraseña son obligatorios (o usa Mensaje libre)';
   if(v.some(x=>x.includes('|')))throw 'No uses el símbolo | en los datos';
-  while(v.length>2&&!v[v.length-1])v.pop();
+  v=[...v];while(v.length>2&&!v[v.length-1])v.pop();
   const r=v.join('|');
   if(r.length>MAXL)throw 'Los datos son muy largos (máx '+MAXL+' caracteres)';
   return r;
+};
+const readAcc=()=>val('emd')==='free'?packMsg(val('ef')):packAcc([0,1,2,3,4].map(i=>val('e'+i)));
+const normLine=l=>{
+  l=l.trim();
+  if(l.startsWith('@@')){const t=l.slice(2).trim();return t&&t.length<=MAXL-2?'@@'+t:null}
+  const q=l.split('|').map(x=>x.trim());
+  if(q.length<2||q.length>5||!q[0]||!q[1])return null;
+  while(q.length>2&&!q[q.length-1])q.pop();
+  const r=q.join('|');return r.length<=MAXL?r:null;
 };
 
 /* ================= Vistas ================= */
@@ -80,14 +89,24 @@ const alive=o=>ms(o.createdAt)+(o.days||30)*864e5>Date.now();
 const prodList=()=>{const l=S.prods.filter(p=>has([p.name,p.cat,p.desc],S.q));return l.length?l.map(p=>`<div class="card pitem"><div class="pth">${pimg(p,'sm2')}</div><div class="pbody"><b>${esc(p.name)}</b><div class="meta"><span>${money(p.price)}</span><span>⏱ ${p.days} días</span><span>${p.ren?'Renovable':'No renovable'}</span>${p.cat?`<span>${esc(p.cat)}</span>`:''}<span class="tag ${stk(p)?'ok':'no'}">Stock ${stk(p)}</span></div></div><div class="pact"><button data-a="adds" data-id="${p.id}">+ Stock</button><button class="ghost" data-a="editp" data-id="${p.id}">Editar</button><button class="no" data-a="delp" data-id="${p.id}">Eliminar</button></div></div>`).join(''):empty('Crea tu primer producto arriba.')};
 const prodV=()=>`<div class="sec card"><h3>Crear producto</h3><div class="two"><div><label>Nombre</label><input id="pn" maxlength="80"></div><div><label>Precio (USD)</label><input id="pp" type="number" min="0" step="0.01"></div></div><label>Descripción</label><textarea id="pd" rows="3"></textarea><div class="two"><div><label>Categoría</label><input id="pc" list="cl" placeholder="Streaming, Música…"><datalist id="cl">${catOpts()}</datalist></div><div><label>¿Renovable?</label><select id="pr"><option value="1">Sí, renovable</option><option value="0">No renovable</option></select></div></div><div class="two"><div><label>Duración (días)</label><input id="pdays" type="number" min="1" value="30"></div><div><label>Link de la imagen (opcional)</label><input id="pi" placeholder="https://..."></div></div><button data-a="addp">Crear producto</button></div><div class="sec"><h3>Productos <span class="pill">${S.prods.length}</span></h3>${srch('Buscar producto o categoría…')}<div id="lst">${prodList()}</div></div>`;
 
-/* ---- Inventario: cuentas disponibles para entregar ---- */
-const stItem=s=>`<div class="row"><span class="acc">${accSum(S.sec[s])}</span><span style="display:flex;gap:6px"><button class="ghost" data-a="editst" data-id="${s}">Editar</button><button class="no" data-a="delst" data-id="${s}">Eliminar</button></span></div>`;
+/* ---- Inventario: cuentas disponibles para entregar (edición directa, en bloque y vaciado) ---- */
+const FL=['Correo','Clave','Perfil','PIN','Nota'];
+const iRow=(s,i)=>{
+  const raw=S.sec[s],fr=isFree(raw),p=fr?[]:String(raw||'').split('|');
+  const fields=fr
+    ?`<textarea data-f="m" rows="2" maxlength="${MAXL-2}" placeholder="Mensaje que verá el cliente" aria-label="Mensaje">${esc(String(raw).slice(2).trim())}</textarea>`
+    :FL.map((l,k)=>`<input data-f="${k}" maxlength="${k===4?150:80}" placeholder="${l}" aria-label="${l}" value="${esc((k===4?p.slice(4).join(' | '):(p[k]||'')).trim())}">`).join('');
+  return `<div class="irow${fr?' free':''}" data-s="${s}"><span class="inum">${i+1}</span><div class="ifs">${fields}</div><span class="iact"><button data-a="isave" data-id="${s}">Guardar</button><button class="no" data-a="delst" data-id="${s}" title="Eliminar esta cuenta" aria-label="Eliminar">✕</button></span></div>`;
+};
 const invList=()=>{
   const q=S.q;
-  const l=S.prods.map(p=>{const ids=S.free[p.id]||[],hit=has([p.name,p.cat],q);return{p,ids,hit,m:(q&&!hit)?ids.filter(s=>has([S.sec[s]||''],q)):ids}}).filter(x=>!q||x.hit||x.m.length);
-  return l.length?l.map(({p,ids,m})=>{const op=!!(OPEN[p.id]||q);return `<div class="card inv"><div class="row" style="border:0;padding:0;flex-wrap:nowrap"><button class="ghost invh" data-a="invt" data-id="${p.id}">${op?'▾':'▸'} <b>${esc(p.name)}</b> <span class="tag ${ids.length?'ok':'no'}">${ids.length} disponible${ids.length===1?'':'s'}</span></button><button data-a="adds" data-id="${p.id}">+ Agregar</button></div>${op?`<div class="invb">${m.length?m.map(stItem).join(''):'<p class="mu" style="margin:10px 0 0">Sin cuentas disponibles.</p>'}</div>`:''}</div>`}).join(''):empty('No hay productos que coincidan.');
+  const l=S.prods.map(p=>{const ids=S.free[p.id]||[],hit=has([p.name,p.cat],q);return{p,ids,m:(q&&!hit)?ids.filter(s=>has([S.sec[s]||''],q)):ids,hit}}).filter(x=>!q||x.hit||x.m.length);
+  return l.length?l.map(({p,ids,m})=>{const op=!!(OPEN[p.id]||q);return `<div class="card inv"><div class="invtop"><button class="ghost invh" data-a="invt" data-id="${p.id}">${op?'▾':'▸'} <b>${esc(p.name)}</b> <span class="tag ${ids.length?'ok':'no'}">${ids.length} disponible${ids.length===1?'':'s'}</span></button><span class="invbtns"><button data-a="adds" data-id="${p.id}">+ Agregar</button><button class="ghost" data-a="bulk" data-id="${p.id}" ${ids.length?'':'disabled'}>Editar en bloque</button><button class="no" data-a="clr" data-id="${p.id}" ${ids.length?'':'disabled'}>Vaciar</button></span></div>${op?`<div class="invb">${m.length?m.map(iRow).join(''):'<p class="mu" style="margin:0">Sin cuentas disponibles.</p>'}</div>`:''}</div>`}).join(''):empty('No hay productos que coincidan.');
 };
-const invV=()=>{const n=Object.values(S.free).reduce((s,a)=>s+a.length,0);return `<div class="sec"><h3>Inventario disponible <span class="pill">${n}</span></h3><p class="mu">Cuentas listas para entregar. Toca un producto para ver y corregir sus datos (correo, contraseña, perfil, PIN, nota o mensaje libre).</p>${srch('Buscar por correo, mensaje o producto…')}<div id="lst">${invList()}</div></div>`};
+const invV=()=>{
+  const n=Object.values(S.free).reduce((s,a)=>s+a.length,0),con=S.prods.filter(p=>stk(p)>0).length;
+  return `<div class="sec"><h3>Inventario disponible <span class="pill">${n}</span></h3><div class="kpis"><div class="kpi"><small>Cuentas disponibles</small><b>${n}</b></div><div class="kpi"><small>Productos con stock</small><b>${con}</b></div><div class="kpi"><small>Productos agotados</small><b>${S.prods.length-con}</b></div></div><p class="mu">Corrige los datos directamente en cada cuenta y toca <b>Guardar</b>. Para cambiar muchas a la vez usa <b>Editar en bloque</b>.</p><div class="invtools">${srch('Buscar por correo, mensaje o producto…')}<div class="chips2"><button class="ghost" data-a="invall" data-v="1">Expandir todo</button><button class="ghost" data-a="invall" data-v="0">Contraer todo</button><button class="no" data-a="clrall" style="margin-left:auto" ${n?'':'disabled'}>Vaciar todo el inventario</button></div></div><div id="lst">${invList()}</div></div>`;
+};
 
 /* ---- Recargas: pendientes + historial propio de recargas ---- */
 let RN=30;
@@ -135,7 +154,7 @@ const addSM=p=>`<h3>Agregar stock</h3><p class="mu">${esc(p.name)}</p><label>Tip
 <div id="am_acc"><label>Una cuenta por línea. Formato: correo|contraseña|perfil|pin|nota (perfil, pin y nota son opcionales)</label><textarea id="al" rows="6" placeholder="correo@mail.com|clave123|Perfil 1|1234"></textarea></div>
 <div id="am_free" style="display:none"><label>Mensaje que recibirá el cliente (sin formato fijo)</label><textarea id="af" rows="5" maxlength="${MAXL-2}" placeholder="Ej: Envía tu correo por WhatsApp a soporte para activar tu cuenta"></textarea><label>Cantidad de entregas con este mensaje</label><input id="aq" type="number" min="1" max="200" value="1"></div>
 ${two(`<button data-a="addst" data-id="${p.id}">Agregar</button>`,cancel)}`;
-const editStM=s=>{const p=prd(pidOf(s));return `<h3>Editar cuenta disponible</h3><p class="mu">${esc(p?.name||'')}. La próxima venta se entregará con estos datos.</p>${accForm(S.sec[s])}${two(`<button data-a="savest" data-id="${s}">Guardar cambios</button>`,cancel)}`};
+const bulkM=p=>{const ids=S.free[p.id]||[];return `<h3>Editar en bloque</h3><p class="mu"><b>${esc(p.name)}</b> · ${ids.length} disponible${ids.length===1?'':'s'}. Una cuenta por línea: correo|contraseña|perfil|pin|nota. Para un mensaje libre empieza la línea con @@. Si borras una línea se elimina esa cuenta; si agregas líneas se crean cuentas nuevas.</p><textarea id="bk" rows="12" wrap="off" spellcheck="false" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;white-space:pre;overflow:auto">${esc(ids.map(s=>S.sec[s]||'').join('\n'))}</textarea>${two(`<button data-a="bsave" data-id="${p.id}">Guardar cambios</button>`,cancel)}`};
 const editOM=o=>`<h3>Editar entrega</h3><p class="mu">${esc(o.pname)}. El cliente verá los datos actualizados.</p>${accForm(S.sec[o.sid])}${two(`<button data-a="saveo" data-id="${o.id}">Guardar cambios</button>`,cancel)}`;
 const balM=u=>`<h3>Saldo del cliente</h3><p>${esc(u.email)}<br><b>Actual: ${money(u.balance)}</b></p><label>Monto (USD)</label><input id="bm" type="number" min="0" step="0.01">${two(`<button class="ok" data-a="setbal" data-id="${u.id}" data-m="add">Agregar</button>`,`<button data-a="setbal" data-id="${u.id}" data-m="set">Establecer saldo</button>`)}<button class="ghost" style="width:100%;margin-top:8px" data-a="closeM">Cancelar</button>`;
 const editPM=p=>`<h3>Editar producto</h3><label>Nombre</label><input id="en" maxlength="80" value="${esc(p.name)}"><label>Precio (USD)</label><input id="ep" type="number" min="0" step="0.01" value="${p.price}"><label>Descripción</label><textarea id="ed" rows="4">${esc(p.desc)}</textarea><label>Categoría</label><input id="ec" list="cl2" value="${esc(p.cat||'')}"><datalist id="cl2">${catOpts()}</datalist><label>¿Renovable?</label><select id="er"><option value="1" ${p.ren?'selected':''}>Sí, renovable</option><option value="0" ${p.ren?'':'selected'}>No renovable</option></select><label>Duración (días)</label><input id="edy" type="number" min="1" value="${p.days}"><label>Link de la imagen</label><input id="ei" value="${esc(p.img||'')}">${two(`<button data-a="savep" data-id="${p.id}">Guardar cambios</button>`,cancel)}`;
@@ -175,8 +194,23 @@ Object.assign(A,{
     await addStock(d.id,lines);toast(lines.length+' entrega(s) agregadas');
   },
   invt:d=>{OPEN[d.id]=!OPEN[d.id];paint(true)},
-  editst:async d=>{await fetchSec([d.id]);modal(editStM(d.id))},
-  savest:async d=>{const a=readAcc();await saveAcc(d.id,a);S.sec[d.id]=a;closeM();paint(true);toast('Cuenta actualizada')},
+  isave:async(d,b)=>{
+    const row=b.closest('.irow'),g=k=>(row.querySelector('[data-f="'+k+'"]')?.value||'').trim();
+    const acc=row.classList.contains('free')?packMsg(g('m')):packAcc([0,1,2,3,4].map(g));
+    await saveAcc(d.id,acc);S.sec[d.id]=acc;row.classList.remove('dirty');toast('Cuenta actualizada');
+  },
+  invall:d=>{S.prods.forEach(p=>{OPEN[p.id]=d.v==='1'});paint(true)},
+  bulk:d=>modal(bulkM(prd(d.id))),
+  bsave:async d=>{
+    const ids=S.free[d.id]||[],lines=val('bk').split('\n').map(x=>x.trim()).filter(Boolean).map(normLine),bad=lines.filter(x=>x===null).length;
+    if(bad)return toast('Formato inválido en '+bad+' línea(s). Usa correo|contraseña|perfil|pin|nota, o empieza con @@ para un mensaje libre');
+    const del=Math.max(0,ids.length-lines.length),add=Math.max(0,lines.length-ids.length);
+    if(del&&!confirm('Se eliminarán '+del+' cuenta(s) que quitaste de la lista. ¿Continuar?'))return;
+    closeM();toast('Guardando…');await bulkSave(d.id,lines);
+    toast('Listo: '+Math.min(ids.length,lines.length)+' actualizada(s)'+(add?', '+add+' nueva(s)':'')+(del?', '+del+' eliminada(s)':''));
+  },
+  clr:async d=>{const p=prd(d.id),ids=[...(S.free[d.id]||[])];if(ids.length&&confirm('¿Eliminar las '+ids.length+' cuenta(s) disponibles de "'+p.name+'"? Las ya vendidas no se tocan.')){await clearStock(ids);toast(ids.length+' cuenta(s) eliminadas')}},
+  clrall:async()=>{const ids=Object.values(S.free).flat();if(ids.length&&confirm('¿Eliminar TODAS las '+ids.length+' cuentas disponibles de todos los productos? Las ya vendidas no se tocan.')&&confirm('Esta acción no se puede deshacer. ¿Seguro que quieres vaciar todo el inventario?')){await clearStock(ids);toast('Inventario vaciado')}},
   delst:async d=>{if(confirm('¿Eliminar esta cuenta del stock disponible?')){await delStock(d.id);toast('Cuenta eliminada')}},
   /* entregas ya vendidas */
   edito:async d=>{const o=ord(d.id);await fetchSec([o.sid]);modal(editOM(o))},
@@ -200,5 +234,6 @@ Object.assign(A,{
 });
 const sw=(a,b)=>v=>{$(a).style.display=v==='free'?'none':'';$(b).style.display=v==='free'?'':'none'};
 Object.assign(I,{am:sw('am_acc','am_free'),emd:sw('em_acc','em_free')});
+document.addEventListener('input',e=>{e.target.closest?.('.irow')?.classList.add('dirty')});
 H.paint=shellPaint;
 start('admincdb');
