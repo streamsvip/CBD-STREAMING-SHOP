@@ -2,7 +2,7 @@ import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase
 import {getAuth,onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,sendPasswordResetEmail} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {getDatabase,ref,onValue,get,set,update,push,query,orderByChild,equalTo,serverTimestamp,increment} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 /* ===== Núcleo ===== */
-const S={me:null,adm:false,ready:false,bal:0,name:'',prods:[],free:{},orders:[],rech:[],users:[],sec:{},wa:'',tab:'catalog',view:'home',mode:'login',pm:'yape',q:'',cat:'',sort:''};
+const S={me:null,adm:false,ready:false,bal:0,name:'',pay:{},prods:[],free:{},orders:[],rech:[],users:[],sec:{},wa:'',tab:'catalog',view:'home',mode:'login',pm:'yape',q:'',cat:'',sort:''};
 const A={},I={};
 const RATE=3.4,MIN=1;
 const $=id=>document.getElementById(id);
@@ -25,7 +25,10 @@ const parseAcc=a=>{
   let p=String(a||'').split('|').map(x=>x.trim());
   if(p.length>5)p=[...p.slice(0,4),p.slice(4).join(' | ')];
   return p.length<2?[['Cuenta',a||'(cargando…)']]:['Correo','Contraseña','Perfil','PIN','Nota'].map((l,i)=>[l,p[i]]).filter(x=>x[1])};
-const PAY={yape:{n:'Yape',rows:[['Número','965730677'],['Nombre','DIGITAL STORE']],qr:'img/yaqr.jpeg',note:'Paga el equivalente en soles.'},bin:{n:'Binance Pay',rows:[['ID de usuario','1250169311'],['Nombre','CRB TECH SHP']],qr:'img/binqr.jpeg',note:'Paga el monto en dólares (USDT).'}};
+/* Medios de pago: el QR por defecto se puede reemplazar desde Admin → Pagos (guardado en settings/pay/<método>/qr como link) */
+const PAY={yape:{n:'Yape',name:'DIGITAL STORE',qr:'img/yaqr.jpeg',note:'Paga el equivalente en soles.'},bin:{n:'Binance Pay',id:'1250169311',name:'CRB TECH SHP',qr:'img/binqr.jpeg',note:'Paga el monto en dólares (USDT).'}};
+/* Datos de pago vigentes: lo guardado en settings/pay/<método> (name, id, qr) reemplaza al valor por defecto */
+const payInfo=k=>{const o={...PAY[k]},s=S.pay?.[k]||{};['name','id','qr'].forEach(f=>{if(s[f])o[f]=s[f]});return o};
 function toast(t,d=2800){const e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',d)}
 const modal=h=>{$('mbox').innerHTML=h;$('modal').classList.add('on')};
 const closeM=()=>$('modal').classList.remove('on');
@@ -67,6 +70,7 @@ const denied=e=>/permission/i.test(e?.code||e?.message||'');
 function pub(r){
   const d1=once('pub');onValue(R('products'),s=>{S.prods=arr(s);r();d1()},()=>d1());
   const d2=once('pub');onValue(R('settings/wa'),s=>{S.wa=s.val()||'';r();d2()},()=>d2());
+  const d3=once('pub');onValue(R('settings/pay'),s=>{S.pay=s.val()||{};r();d3()},()=>d3());
 }
 const unlisten=()=>{subs.splice(0).forEach(f=>f());pend.priv=0};
 function priv(r){
@@ -248,4 +252,4 @@ onAuthStateChanged(auth,async u=>{
   S.ready=true;paint(true);fin();
 });
 }
-export {isFree,S,A,I,P,H,$,esc,usd,sol,money,ms,fd,period,vig,uname,wa9,parseAcc,PAY,toast,modal,closeM,err,db,root,R,arr,by,denied,fetchSec,set,update,push,get,increment,serverTimestamp,paint,shellPaint,start,LOGO,BURG,banner,empty,who,stk,em,buyer,srch,has,pimg,accMsg,two,cancel,eye,flt,cards,catBar,catOpts,ordList,recRow,ST,prodM,ordM,ord,prd,val,openWa,copy,login,register,userIssue,MIN,auth,showLoad,hideNow,sendPasswordResetEmail,ask}
+export {isFree,S,A,I,P,H,$,esc,usd,sol,money,ms,fd,period,vig,uname,wa9,parseAcc,PAY,payInfo,toast,modal,closeM,err,db,root,R,arr,by,denied,fetchSec,set,update,push,get,increment,serverTimestamp,paint,shellPaint,start,LOGO,BURG,banner,empty,who,stk,em,buyer,srch,has,pimg,accMsg,two,cancel,eye,flt,cards,catBar,catOpts,ordList,recRow,ST,prodM,ordM,ord,prd,val,openWa,copy,login,register,userIssue,MIN,auth,showLoad,hideNow,sendPasswordResetEmail,ask}
