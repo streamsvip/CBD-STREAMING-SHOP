@@ -1,4 +1,4 @@
-import * as K from './core.js?v=20261026';
+import * as K from './core.js?v=20261030';
 const {S,A,I,P,H,$,esc,usd,money,ms,period,vig,uname,PAY,toast,modal,closeM,root,R,fetchSec,set,update,push,increment,serverTimestamp,paint,shellPaint,start,stk,em,buyer,srch,has,pimg,two,cancel,flt,cards,catBar,catOpts,recRow,ST,ord,prd,val,userIssue,isFree,empty,ask}=K;
 
 /* ================= Datos del administrador ================= */
@@ -123,6 +123,14 @@ const pendV=()=>{
 const cliV=()=>{const c=S.users.filter(u=>u.id!==S.me.uid);return `<div class="sec"><h3>Clientes <span class="pill">${c.length}</span></h3>${c.length?c.map(u=>`<div class="card row cli" style="flex-direction:row;margin-bottom:10px"><span class="usr"><span class="av">${esc(uname(u)[0].toUpperCase())}</span><span><b>${esc(uname(u))}</b>${S.users.filter(x=>String(x.email).toLowerCase()===String(u.email).toLowerCase()).length>1?' <span class="tag no">Correo repetido</span>':''}<br><small class="mu">${esc(u.email)} · Saldo: ${money(u.balance)}</small></span></span><button class="ghost" data-a="balm" data-id="${u.id}">Gestionar saldo</button></div>`).join(''):empty('Aún no hay clientes registrados.')}</div>`};
 const confV=()=>`<div class="sec card"><h3>Configuración</h3><label>WhatsApp del soporte (con código de país, por ejemplo 51999999999)</label><input id="sw" value="${esc(S.wa)}"><button data-a="savewa" style="margin-top:6px">Guardar configuración</button></div>`;
 
+/* ---- Medios de pago: el QR de cada método se configura con un link de imagen (https://...) ---- */
+const PAYK=['yape','bin'];
+const payCard=k=>{
+  const s=S.pay?.[k]||{},p=K.payInfo(k);
+  return `<div class="card" style="margin-bottom:12px"><h3>${esc(PAY[k].n)}</h3><label>Nombre del titular</label><input id="nm_${k}" maxlength="60" autocomplete="off" value="${esc(s.name||'')}" placeholder="${esc(PAY[k].name)}">${k==='bin'?`<label>ID de usuario</label><input id="id_${k}" maxlength="40" autocomplete="off" value="${esc(s.id||'')}" placeholder="${esc(PAY[k].id)}">`:''}<label>Link de la imagen del QR (https://...)</label><input id="qr_${k}" maxlength="500" inputmode="url" autocomplete="off" value="${esc(s.qr||'')}" placeholder="https://..."><small class="mu" style="display:block;margin:-6px 0 8px">Los campos vacíos usan el valor por defecto (el del placeholder).</small><div class="payb"><div class="qrb" style="cursor:default"><div class="qrph"><b>QR</b></div><img src="${esc(p.qr)}" alt="QR ${esc(PAY[k].n)}" referrerpolicy="no-referrer" onerror="this.remove()"></div></div></div>`;
+};
+const payV=()=>`<div class="sec"><h3>Medios de pago</h3>${PAYK.map(payCard).join('')}<p class="mu">Yape muestra solo el QR y el nombre del titular (sin número). Las imágenes se agregan con link directo.</p><button data-a="savepay">Guardar medios de pago</button></div>`;
+
 /* ---- Historial: solo cuentas entregadas (ventas). Las recargas tienen su propio historial en la pestaña Recargas ---- */
 const H2={p:'30',s:'all',n:60};
 const cut=()=>{const p=H2.p;if(p==='all')return 0;if(p==='today'){const d=new Date();d.setHours(0,0,0,0);return d.getTime()}return Date.now()-Number(p)*864e5};
@@ -145,9 +153,9 @@ const chips=(act,cur,list)=>list.map(x=>`<button class="${cur===x[0]?'':'ghost'}
 const histV=()=>`<div class="sec"><h3>Historial de entregas</h3><div class="kpis">${kpis().map(k=>`<div class="kpi"><small>${k[0]}</small><b>${k[1]}</b></div>`).join('')}</div><div class="cbar">${srch('Buscar por producto, comprador, cliente o cuenta…')}<div class="chips2">${chips('hp',H2.p,[['today','Hoy'],['7','7 días'],['30','30 días'],['all','Todo']])}</div><div class="chips2">${chips('hs',H2.s,[['all','Todas'],['on','Vigentes'],['off','Vencidas']])}<button class="ghost" data-a="csv" style="margin-left:auto">Exportar CSV</button></div></div><div id="lst">${histList()}</div></div>`;
 const csvRow=o=>{const b=buyer(o.uid);return [fdt(ms(o.createdAt)),o.pname,b.email||'',em(o)||'',o.cname||'',o.cwa||'',alive(o)?'Vigente':'Vencida',o.price]};
 
-P.views={catalog:()=>catBar()+`<div id="lst">${cards(flt())}</div>`,pend:pendV,prod:prodV,inv:invV,cli:cliV,hist:histV,conf:confV};
+P.views={catalog:()=>catBar()+`<div id="lst">${cards(flt())}</div>`,pend:pendV,prod:prodV,inv:invV,cli:cliV,hist:histV,pay:payV,conf:confV};
 P.lst={catalog:()=>cards(flt()),pend:recHist,prod:prodList,inv:invList,hist:histList};
-P.tabs=()=>{const n=S.rech.filter(r=>r.status==='pend').length;return [['pend','Recargas'+(n?' ('+n+')':'')],['prod','Productos'],['inv','Inventario'],['cli','Clientes'],['hist','Historial'],['conf','Config'],['catalog','Catálogo']]};
+P.tabs=()=>{const n=S.rech.filter(r=>r.status==='pend').length;return [['pend','Recargas'+(n?' ('+n+')':'')],['prod','Productos'],['inv','Inventario'],['cli','Clientes'],['hist','Historial'],['pay','Pagos'],['conf','Config'],['catalog','Catálogo']]};
 
 /* ================= Ventanas ================= */
 const addSM=p=>`<h3>Agregar stock</h3><p class="mu">${esc(p.name)}</p><label>Tipo de entrega</label><select id="am" data-i="am"><option value="acc">Cuentas (correo|contraseña|perfil|pin|nota)</option><option value="free">Mensaje libre</option></select>
@@ -228,6 +236,20 @@ Object.assign(A,{
     await setBal(u,d.m,v);closeM();toast(d.m==='add'?'Saldo agregado: +'+usd(v):'Saldo establecido en '+usd(v));
   },
   savewa:async()=>{await saveWa(val('sw').replace(/\D/g,''));toast('Configuración guardada')},
+  /* medios de pago: link del QR de Yape y Binance (vacío = QR por defecto) */
+  savepay:async()=>{
+    const x={};
+    for(const k of PAYK){
+      const v=val('qr_'+k);
+      if(v&&!/^https?:\/\/\S+$/i.test(v))throw 'El link del QR de '+PAY[k].n+' debe empezar con https:// y no tener espacios';
+      if(v.length>500)throw 'El link del QR de '+PAY[k].n+' es muy largo (máx 500 caracteres)';
+      x['settings/pay/'+k+'/qr']=v||null;
+      x['settings/pay/'+k+'/name']=val('nm_'+k)||null;
+      if(k==='bin')x['settings/pay/'+k+'/id']=val('id_'+k)||null;
+    }
+    await update(root,x);
+    paint(true);toast('Medios de pago guardados');
+  },
   /* historial de entregas */
   hp:d=>{H2.p=d.v;H2.n=60;paint(true)},
   hs:d=>{H2.s=d.v;H2.n=60;paint(true)},
